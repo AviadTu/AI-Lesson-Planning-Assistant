@@ -34,15 +34,5 @@ class HistoryResponse(BaseModel):
 
 
 # ── /documents ───────────────────────────────────────────────────────
-class Document(BaseModel):
-    original_filename: str
-    doc_id: str
-    upload_timestamp: str | None = None
-
-
-class DocumentsResponse(BaseModel):
-    documents: list[Document]
-
-
 class DeleteDocumentRequest(BaseModel):
     doc_id: str

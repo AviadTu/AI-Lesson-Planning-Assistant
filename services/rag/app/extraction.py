@@ -15,6 +15,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+# Single source of the filename-extension helper for the RAG service.
+from app.storage.files import _extension
+
 
 class ExtractionError(RuntimeError):
     """Raised when a document cannot be parsed/extracted."""
@@ -24,11 +27,6 @@ class ExtractionError(RuntimeError):
 class Segment:
     text: str
     page_number: int | None
-
-
-def _extension(filename: str) -> str:
-    _, dot, ext = filename.rpartition(".")
-    return ext.lower() if dot else ""
 
 
 def extract_segments(path: str | Path, original_filename: str) -> list[Segment]:
