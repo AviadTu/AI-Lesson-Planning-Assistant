@@ -1,0 +1,5 @@
+# Guardrails service dependencies.
+# Versions are intentionally unpinned; pin them (pip freeze) before release.
+fastapi
+uvicorn[standard]
+pydantic-settings

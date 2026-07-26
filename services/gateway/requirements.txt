@@ -1,0 +1,8 @@
+# FastAPI Gateway dependencies.
+# Versions are intentionally unpinned; pin them (pip freeze) before release.
+fastapi
+uvicorn[standard]
+httpx
+python-multipart
+jinja2
+pydantic-settings

@@ -1,4 +1,7 @@
-# ── Secrets (must never be baked into the image) ─────────────────────
+# Build context is the repository root (see each service's Dockerfile).
+# Keep images small and free of secrets / runtime state.
+
+# ── Secrets & env ────────────────────────────────────────────────────
 .env
 .env.*
 !.env.example
@@ -8,7 +11,7 @@
 .gitignore
 .gitattributes
 
-# ── Python ───────────────────────────────────────────────────────────
+# ── Python caches / build ────────────────────────────────────────────
 __pycache__
 **/__pycache__
 *.pyc
@@ -19,6 +22,9 @@ __pycache__
 .eggs
 build
 dist
+.pytest_cache
+.mypy_cache
+.ruff_cache
 
 # ── Virtual environments ─────────────────────────────────────────────
 .venv
@@ -26,46 +32,31 @@ venv
 env
 ENV
 
-# ── Caches & test artefacts ──────────────────────────────────────────
-.pytest_cache
-.mypy_cache
-.ruff_cache
-.coverage
-.coverage.*
-htmlcov
-
-# ── Local databases (image must start with a clean DB) ───────────────
-database/*.db
-database/*.sqlite
-database/*.sqlite3
+# ── Runtime data & models (mounted at runtime, never baked in) ───────
+data
+**/data
 *.db
 *.sqlite
 *.sqlite3
+models
+*.gguf
 
-# ── Logs ─────────────────────────────────────────────────────────────
+# ── Logs / editor / OS ───────────────────────────────────────────────
 *.log
 logs
-
-# ── FAISS index snapshots ────────────────────────────────────────────
-*.index
-*.faiss
-
-# ── Editor / IDE / OS junk ───────────────────────────────────────────
 .vscode
 .idea
-*.swp
-*.swo
 .DS_Store
 Thumbs.db
 desktop.ini
+~$*
 
-# ── Docker files themselves ──────────────────────────────────────────
-docker-compose*.yml
-
-# ── Documentation and assets not needed at runtime ──────────────────
+# ── Docs & assets not needed at runtime ──────────────────────────────
 README.md
-screenshots/
+screenshots
+submissions
+n8n
 
 # ── Cursor / agent transcripts ───────────────────────────────────────
-terminals
 .cursor
+terminals

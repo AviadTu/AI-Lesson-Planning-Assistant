@@ -1,5 +1,7 @@
 # ── Secrets ────────────────────────────────────
 .env
+.env.*
+!.env.example
 
 # ── Python ─────────────────────────────────────
 __pycache__/
@@ -22,23 +24,22 @@ venv/
 env/
 ENV/
 
-# ── Database ────────────────────────────────────
-database/*.db
-database/*.sqlite
-database/*.sqlite3
+# ── Runtime data (SQLite, uploads, ChromaDB) ────
+data/
+**/data/
+*.db
+*.sqlite
+*.sqlite3
 
-# ── FAISS index snapshots (can be large) ────────
-*.index
-*.faiss
+# ── Local models (large GGUF weights) ───────────
+models/
+*.gguf
 
-# ── Notebooks ───────────────────────────────────
-.ipynb_checkpoints/
-*.ipynb
-
-# ── OS ──────────────────────────────────────────
+# ── OS / Office ─────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
+~$*
 
 # ── IDE ─────────────────────────────────────────
 .vscode/
@@ -46,17 +47,6 @@ desktop.ini
 *.swp
 *.swo
 
-# Runtime
+# ── Logs ────────────────────────────────────────
 logs/
 *.log
-
-# Flask session/cache
-instance/
-
-# Environment files
-.env.*
-!.env.example
-
-# Python coverage
-.coverage
-htmlcov/

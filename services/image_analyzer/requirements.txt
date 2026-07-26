@@ -1,0 +1,7 @@
+# Image Analyzer service dependencies.
+# Versions are intentionally unpinned; pin them (pip freeze) before release.
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings
+pillow

@@ -1,0 +1,23 @@
+# RAG service dependencies.
+# Versions are intentionally unpinned; pin them (pip freeze) before release.
+
+# ── Web framework ────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings
+
+# ── Ingestion + retrieval pipeline ───────────────────────────────────
+httpx              # Ollama embeddings HTTP client
+chromadb           # local, persistent vector store
+pypdf              # PDF text extraction (per-page)
+python-docx        # DOCX text extraction
+
+# ── Generation (local GGUF via llama.cpp) ────────────────────────────
+# On Windows/CPU install the prebuilt wheel:
+#   pip install llama-cpp-python \
+#     --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python
+
+# ── Deferred (NOT implemented yet) ───────────────────────────────────
+#   langgraph  # multi-step orchestration, if/when needed
