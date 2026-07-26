@@ -15,10 +15,12 @@ workflows) lives in the downstream services and is not implemented here yet.
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import init_db
 from app.routers import chat, documents, pages, status
+from app.routers.pages import _resolve_templates_dir
 
 app = FastAPI(title="Homori Gateway", version="0.1.0")
 
@@ -38,6 +40,11 @@ app.include_router(pages.router)
 app.include_router(chat.router)
 app.include_router(status.router)
 app.include_router(documents.router)
+
+# Serve the favicon assets (frontend/static) on the same origin as the app.
+_static_dir = _resolve_templates_dir().parent / "static"
+if _static_dir.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 
 if __name__ == "__main__":

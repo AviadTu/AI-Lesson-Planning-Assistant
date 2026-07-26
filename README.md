@@ -69,6 +69,24 @@ screenshots/  submissions/ Course deliverables
 
 ---
 
+## Quick start (Windows)
+
+Once the `.venv` exists and each service's requirements are installed, run the
+whole application locally with a single command from the repo root:
+
+```powershell
+.\start.ps1
+```
+
+`start.ps1` starts the Ollama daemon (if it isn't already running), the RAG
+service (`:8001`), and the Gateway (`:8000`) — waiting for each `/health` to
+succeed — then opens **http://localhost:8000** in your default browser. It uses
+the existing `.venv`, never creates a virtualenv or installs packages, and skips
+any service that is already running. (n8n is not started; it is not implemented
+yet.) Service logs are written to `logs/`.
+
+---
+
 ## Local development
 
 Each service is a standalone FastAPI app. Create a virtualenv per service (or a
