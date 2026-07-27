@@ -1,0 +1,116 @@
+"""
+Intent routing for the Gateway (keeps /chat lightweight).
+
+Decides whether a chat turn is an ordinary knowledge question (→ RAG, the
+existing independent path) or a lesson-plan create/continue request (→ n8n).
+
+Order of decision (cheapest / most certain first):
+  1. Session already in lesson-planning mode  → n8n.
+  2. Pending "shall I build a lesson?" offer + an affirmative reply → n8n.
+  3. Explicit lesson request (deterministic keyword rules) → n8n.
+  4. Clearly a knowledge question (question form, no lesson keyword) → RAG.
+  5. Otherwise ambiguous → a lightweight LOCAL LLM classifier decides.
+
+The local classifier is only called for genuinely ambiguous turns, so the
+common RAG path stays fast.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+
+import httpx
+
+from app.config import settings
+
+logger = logging.getLogger("gateway.routing")
+
+# Explicit lesson-plan intent (Hebrew + English). "מערך שיעור" is a strong
+# domain signal; creation/finding verbs next to "שיעור"; idea requests; and the
+# common English phrasings.
+_LESSON_RE = re.compile(
+    # "מערך שיעור" is the strongest domain signal. Note: Hebrew prefixes attach
+    # to the word (e.g. "לשיעור"), so we do NOT require a \b before Hebrew nouns.
+    r"מער(?:ך|כי)\s*שיעור"
+    r"|(?:בנ[הי]|לבנות|תבנ[הי]|נבנה|צור|צרי|ליצור|תיצור|הפק|תפיק|להפיק|תכנן|"
+    r"לתכנן|מצא|תמצא)[^\n]{0,40}שיעור"
+    r"|רעיונ(?:ות|ים)?[^\n]{0,30}(?:שיעור|מערך)"
+    r"|lesson\s*plan|(?:create|build|generate|design|plan|make)\b[^\n]{0,30}\blesson",
+    re.IGNORECASE,
+)
+
+# Affirmative reply to a "shall I build a lesson?" offer.
+_AFFIRM_RE = re.compile(
+    r"^\s*(?:כן|בטח|בסדר|אשמח|בוא[יי]?|נסה|תבנ[הי]|יאללה|סבבה|"
+    r"ok|okay|sure|yes|yep|yeah|please)\b",
+    re.IGNORECASE,
+)
+
+# Knowledge-question form (question mark or leading interrogative) with no
+# lesson keyword → route straight to RAG without the classifier.
+_QUESTION_RE = re.compile(
+    r"\?\s*$"
+    r"|^\s*(?:מה|מי|מתי|איפה|כמה|האם|למה|מדוע|איך|כיצד|היכן|"
+    r"what|who|when|where|why|how|is|are|does|do|can)\b",
+    re.IGNORECASE,
+)
+
+
+def is_explicit_lesson(message: str) -> bool:
+    return bool(_LESSON_RE.search(message or ""))
+
+
+def is_affirmative(message: str) -> bool:
+    return bool(_AFFIRM_RE.search(message or ""))
+
+
+def _looks_like_question(message: str) -> bool:
+    return bool(_QUESTION_RE.search((message or "").strip()))
+
+
+def classify_intent_llm(message: str) -> str:
+    """LOCAL lightweight classifier for ambiguous turns → 'lesson' | 'knowledge'."""
+    system = (
+        "Classify the teacher's message as exactly one word: 'lesson' if they "
+        "want to create/build/plan or get ideas for a lesson plan, or "
+        "'knowledge' if they are asking a general/factual question. Answer with "
+        "only that one word."
+    )
+    url = settings.LOCAL_OLLAMA_BASE_URL.rstrip("/") + "/api/chat"
+    payload = {
+        "model": settings.INTENT_MODEL,
+        "stream": False,
+        "options": {"temperature": 0, "num_predict": 5},
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": message or ""},
+        ],
+    }
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.post(url, json=payload)
+            resp.raise_for_status()
+            content = (resp.json().get("message") or {}).get("content", "").lower()
+        return "lesson" if "lesson" in content else "knowledge"
+    except Exception as exc:  # noqa: BLE001 — on failure, prefer the safe RAG path
+        logger.warning("intent classifier failed (%s); defaulting to knowledge", exc)
+        return "knowledge"
+
+
+def decide_route(mode: dict, message: str) -> str:
+    """
+    Return "lesson" (→ n8n) or "rag" (→ RAG) for this turn.
+
+    ``mode`` is the session's persisted {active, pending_offer} flags. This
+    function is pure (no side effects); the caller persists any mode change.
+    """
+    if mode.get("active"):
+        return "lesson"
+    if mode.get("pending_offer") and is_affirmative(message):
+        return "lesson"
+    if is_explicit_lesson(message):
+        return "lesson"
+    if _looks_like_question(message):
+        return "rag"
+    return "lesson" if classify_intent_llm(message) == "lesson" else "rag"

@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     N8N_LESSON_CREATION_WEBHOOK_URL: str = ""
     N8N_EXPORT_WEBHOOK_URL: str = ""
 
+    # ── Intent routing ───────────────────────────────────────────────
+    # A lightweight LOCAL classifier decides ambiguous "knowledge question vs
+    # lesson-plan request" cases; explicit requests are caught by deterministic
+    # rules first (see app/routing.py). Local so it is cheap and offline.
+    LOCAL_OLLAMA_BASE_URL: str = "http://localhost:11434"
+    INTENT_MODEL: str = "llama3.2:latest"
+
     # ── Conversation-memory tuning (see app/memory.py) ───────────────
     HISTORY_MAX_MESSAGES: int = 6
     HISTORY_MAX_CHARS: int = 500

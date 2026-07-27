@@ -72,6 +72,18 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_messages_session
                 ON messages (session_id, id);
+
+            -- Lesson-planning routing state per session. `active` = the session
+            -- is in lesson-planning mode (route to n8n); `pending_offer` = the
+            -- last RAG answer was insufficient and we offered to build a lesson,
+            -- awaiting the user's yes/no (never auto-started).
+            CREATE TABLE IF NOT EXISTS lesson_mode (
+                session_id     TEXT    PRIMARY KEY,
+                active         INTEGER NOT NULL DEFAULT 0,
+                pending_offer  INTEGER NOT NULL DEFAULT 0,
+                pending_topic  TEXT,
+                updated_at     TEXT    NOT NULL
+            );
             """
         )
 
@@ -125,9 +137,56 @@ def get_history(session_id: str) -> list[dict]:
 
 
 def clear_session(session_id: str) -> None:
-    """Delete all messages for a session (the session row is kept)."""
+    """Delete all messages for a session and reset its lesson-planning mode."""
     with _get_db() as conn:
         conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        conn.execute("DELETE FROM lesson_mode WHERE session_id = ?", (session_id,))
+
+
+# ── Lesson-planning routing state ────────────────────────────────────
+def get_lesson_mode(session_id: str) -> dict:
+    """Return {'active', 'pending_offer', 'pending_topic'} for a session."""
+    with _get_db() as conn:
+        row = conn.execute(
+            "SELECT active, pending_offer, pending_topic FROM lesson_mode "
+            "WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+    if not row:
+        return {"active": False, "pending_offer": False, "pending_topic": None}
+    return {
+        "active": bool(row["active"]),
+        "pending_offer": bool(row["pending_offer"]),
+        "pending_topic": row["pending_topic"],
+    }
+
+
+def set_lesson_mode(
+    session_id: str,
+    *,
+    active: bool | None = None,
+    pending_offer: bool | None = None,
+    pending_topic: str | None = None,
+) -> None:
+    """Upsert the session's lesson-planning routing flags (only given fields)."""
+    current = get_lesson_mode(session_id)
+    new_active = current["active"] if active is None else active
+    new_pending = current["pending_offer"] if pending_offer is None else pending_offer
+    new_topic = current["pending_topic"] if pending_topic is None else pending_topic
+    with _get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO lesson_mode
+                (session_id, active, pending_offer, pending_topic, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                active        = excluded.active,
+                pending_offer = excluded.pending_offer,
+                pending_topic = excluded.pending_topic,
+                updated_at    = excluded.updated_at
+            """,
+            (session_id, int(new_active), int(new_pending), new_topic, _now()),
+        )
 
 
 def _now() -> str:
