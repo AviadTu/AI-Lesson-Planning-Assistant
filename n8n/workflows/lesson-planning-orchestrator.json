@@ -8,15 +8,50 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "43e1b652-3ce9-4287-ac27-a677f912f11b",
+      "id": "88692ebe-288b-450b-b00b-b9fa51b52c5f",
       "name": "Webhook In",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
+        220,
         300
       ],
-      "webhookId": "11bbf93b-4e45-4537-ac8d-bf08e06e3d9d"
+      "webhookId": "8be17e38-dcc9-4cb1-8ff0-c2a032f06fd1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8001/retrieve",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"query\": $json.body.message, \"top_k\": 4 } }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "7acf8567-324f-44fb-a46f-f0e246205a62",
+      "name": "RAG Retrieve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const wh = $('Webhook In').first().json.body || {};\nconst chunks = ($input.first().json.chunks) || [];\nconst sources = chunks.map(c => ({\n  type: 'rag', title: c.original_filename,\n  text: c.text, citation: c.original_filename,\n}));\nreturn [{ json: { session_id: wh.session_id, message: wh.message, sources } }];"
+      },
+      "id": "f1e520c7-66e1-48c9-97ca-0c1562afab21",
+      "name": "Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
     },
     {
       "parameters": {
@@ -24,17 +59,17 @@
         "url": "http://host.docker.internal:8004/turn",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"session_id\": $json.body.session_id, \"message\": $json.body.message, \"sources\": [] } }}",
+        "jsonBody": "={{ { \"session_id\": $json.session_id, \"message\": $json.message, \"sources\": $json.sources } }}",
         "options": {
           "timeout": 300000
         }
       },
-      "id": "57d1698a-4f03-4105-9f7c-52b736d8e93a",
+      "id": "1af48bcf-27e9-483e-8cbc-ba1171d41cae",
       "name": "Lesson Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        520,
+        880,
         300
       ]
     },
@@ -44,18 +79,40 @@
         "responseBody": "={{ { \"answer\": $json.reply, \"stage\": $json.stage } }}",
         "options": {}
       },
-      "id": "7379bbe1-d164-4d77-b079-7ce497a724ab",
+      "id": "38504e9e-e9c4-442d-9a98-6153dae14057",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        800,
+        1100,
         300
       ]
     }
   ],
   "connections": {
     "Webhook In": {
+      "main": [
+        [
+          {
+            "node": "RAG Retrieve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Retrieve": {
+      "main": [
+        [
+          {
+            "node": "Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Request": {
       "main": [
         [
           {

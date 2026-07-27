@@ -79,11 +79,16 @@ whole application locally with a single command from the repo root:
 ```
 
 `start.ps1` starts the Ollama daemon (if it isn't already running), the RAG
-service (`:8001`), and the Gateway (`:8000`) — waiting for each `/health` to
-succeed — then opens **http://localhost:8000** in your default browser. It uses
-the existing `.venv`, never creates a virtualenv or installs packages, and skips
-any service that is already running. (n8n is not started; it is not implemented
-yet.) Service logs are written to `logs/`.
+service (`:8001`), the lesson-agent (`:8004`), and the Gateway (`:8000`) —
+waiting for each `/health` to succeed — then opens **http://localhost:8000** in
+your default browser. It uses the existing `.venv`, never creates a virtualenv
+or installs packages, and skips any service that is already running. Service
+logs are written to `logs/`.
+
+Lesson-plan creation is orchestrated by **n8n** (the "Lesson Planning
+Orchestrator" workflow), which runs separately in Docker and is not started by
+`start.ps1`. Ordinary knowledge questions never touch n8n — the Gateway routes
+them to the independent RAG service. See `n8n/workflows/`.
 
 ---
 

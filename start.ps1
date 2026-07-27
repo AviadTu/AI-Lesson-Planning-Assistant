@@ -22,10 +22,11 @@ $ErrorActionPreference = 'Stop'
 
 $Root       = $PSScriptRoot
 $Python     = Join-Path $Root '.venv\Scripts\python.exe'
-$OllamaUrl  = 'http://localhost:11434'
-$RagUrl     = 'http://localhost:8001'
-$GatewayUrl = 'http://localhost:8000'
-$LogDir     = Join-Path $Root 'logs'
+$OllamaUrl      = 'http://localhost:11434'
+$RagUrl         = 'http://localhost:8001'
+$LessonAgentUrl = 'http://localhost:8004'
+$GatewayUrl     = 'http://localhost:8000'
+$LogDir         = Join-Path $Root 'logs'
 
 function Write-Status {
     param([string]$Component, [string]$Message, [string]$Color = 'Cyan')
@@ -103,7 +104,24 @@ if (Test-Url "$RagUrl/health") {
     }
 }
 
-# ── 3. Gateway service (port 8000, serves the frontend) ──────────────
+# ── 3. lesson-agent service (port 8004, LangGraph lesson planning) ───
+if (Test-Url "$LessonAgentUrl/health") {
+    Write-Status 'Agent' "already running at $LessonAgentUrl (skipping duplicate start)" 'Green'
+} else {
+    Write-Status 'Agent' 'starting from services/lesson_agent on port 8004...' 'Yellow'
+    Start-Process -FilePath $Python -ArgumentList '-m', 'app.main' `
+        -WorkingDirectory (Join-Path $Root 'services\lesson_agent') `
+        -RedirectStandardOutput (Join-Path $LogDir 'lesson_agent.out.log') `
+        -RedirectStandardError  (Join-Path $LogDir 'lesson_agent.err.log') `
+        -NoNewWindow | Out-Null
+    if (Wait-Health "$LessonAgentUrl/health" 60) {
+        Write-Status 'Agent' "healthy at $LessonAgentUrl" 'Green'
+    } else {
+        Stop-WithError "lesson-agent did not become healthy at $LessonAgentUrl/health within 60s. See '$LogDir\lesson_agent.err.log'."
+    }
+}
+
+# ── 4. Gateway service (port 8000, serves the frontend) ──────────────
 if (Test-Url "$GatewayUrl/health") {
     Write-Status 'Gateway' "already running at $GatewayUrl (skipping duplicate start)" 'Green'
 } else {
@@ -120,7 +138,7 @@ if (Test-Url "$GatewayUrl/health") {
     }
 }
 
-# ── 4. Open the app (only after both services are healthy) ───────────
+# ── 5. Open the app (only after all services are healthy) ────────────
 Write-Host ''
 Write-Status 'Browser' "opening $GatewayUrl" 'Green'
 Start-Process $GatewayUrl
