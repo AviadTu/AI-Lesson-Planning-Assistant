@@ -1,0 +1,16 @@
+# lesson-agent dependencies.
+# Versions are intentionally unpinned; pin them (pip freeze) before release.
+
+# ── Web framework ────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+pydantic-settings
+
+# ── Conversational reasoning (real LangGraph + LangChain) ────────────
+langgraph
+langgraph-checkpoint-sqlite   # persistent per-session conversation state
+langchain-core
+langchain-ollama              # LOCAL model (classification / missing-info)
+
+# ── Cloud generation transport ───────────────────────────────────────
+httpx                         # direct Ollama Cloud API (OS trust store + Bearer)
