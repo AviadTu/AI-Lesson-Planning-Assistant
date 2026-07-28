@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     # Persists per-session conversational state/memory across turns.
     CHECKPOINT_DB_PATH: str = "./data/lesson_agent_checkpoints.sqlite"
 
+    # ── LLM provider selection ───────────────────────────────────────
+    # Generation is kept behind a provider abstraction (see app/llm/). The
+    # LangGraph flow never talks to a concrete backend.
+    #   LLM_PROVIDER = "ollama"  -> Ollama daemon (fast) + Ollama Cloud (strong)
+    #   LLM_PROVIDER = "openai"  -> OpenAI Chat Completions (implemented; opt-in)
+    # Default is Ollama; "ollama_cloud" is accepted as an alias (the repo-root
+    # .env currently sets LLM_PROVIDER=ollama_cloud).
+    LLM_PROVIDER: str = "ollama"
+
     # ── LOCAL model (classification / missing-info detection) ─────────
     LOCAL_OLLAMA_BASE_URL: str = "http://localhost:11434"
     LOCAL_MODEL: str = "llama3.1:latest"
@@ -52,6 +61,16 @@ class Settings(BaseSettings):
     CLOUD_TEMPERATURE: float = 0.4
     CLOUD_MAX_TOKENS: int = 1500
     CLOUD_TIMEOUT: float = 300.0
+
+    # ── OpenAI provider (implemented but NOT active) ─────────────────
+    # Used only when LLM_PROVIDER=openai. No key is required until then; the
+    # key is validated at call time, never at import. fast→cheap model,
+    # strong→stronger model (they reuse the shared tier temperatures above).
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_FAST_MODEL: str = "gpt-4o-mini"
+    OPENAI_STRONG_MODEL: str = "gpt-4o"
+    OPENAI_TIMEOUT: float = 300.0
 
     # ── Observability: Langfuse (optional, feature-flagged) ──────────
     # Disabled by default and a strict no-op when keys are absent or the SDK

@@ -1,67 +1,35 @@
 """
-Model access for the lesson-agent.
+Model-access facade for the lesson-agent (provider-agnostic).
 
-Two clearly-separated responsibilities (documented in config.py):
+The LangGraph nodes (app/graph.py) call these helpers and never see which
+backend is configured. All provider-specific code lives behind the
+``LLMProvider`` interface (app/llm/); the active provider is chosen once from
+``settings.LLM_PROVIDER`` (default Ollama — see app/llm/provider.py).
 
-  * LOCAL model  — via LangChain ``ChatOllama`` against the local Ollama daemon.
-                   Used for classification and missing-information detection.
-  * CLOUD model  — via a direct Ollama Cloud HTTPS call (Bearer auth) that
-                   verifies TLS against the OS trust store, reusing the proven
-                   approach from the RAG service so it works behind TLS-
-                   inspecting proxies. Used for ideas, lesson generation and
-                   revisions.
+Two tiers, matching the agent's needs:
+  * fast   (``local_chat`` / ``local_json``)  — labelling: intent, missing-info,
+    selection, assist.
+  * strong (``cloud_chat`` / ``cloud_json``)  — content: ideas, full lesson,
+    revisions.
 
-Both expose a JSON helper that robustly extracts a JSON object from the model
-output (stripping markdown fences and any ``<think>`` reasoning blocks).
+The ``local_*`` / ``cloud_*`` names are kept for a stable call surface; they are
+tier labels, not backend names. Each JSON helper robustly extracts a JSON object
+from the model output (stripping markdown fences and any ``<think>`` blocks).
 """
 
 from __future__ import annotations
 
 import json
-import logging
 import re
-import ssl
-import threading
 
-import httpx
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
-
-from app import tracing
-from app.config import settings
-
-logger = logging.getLogger("lesson_agent.llms")
+from app.llm.provider import get_llm_provider
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
-# Verify cloud TLS via the OS trust store (see RAG ollama_cloud_provider).
-_SSL_CONTEXT = ssl.create_default_context()
-
-_local_llm: ChatOllama | None = None
-_local_lock = threading.Lock()
-
-
-def get_local_llm() -> ChatOllama:
-    """Return a cached local ChatOllama instance."""
-    global _local_llm
-    if _local_llm is None:
-        with _local_lock:
-            if _local_llm is None:
-                _local_llm = ChatOllama(
-                    model=settings.LOCAL_MODEL,
-                    base_url=settings.LOCAL_OLLAMA_BASE_URL,
-                    temperature=settings.LOCAL_TEMPERATURE,
-                    client_kwargs={"timeout": settings.LOCAL_TIMEOUT},
-                )
-    return _local_llm
 
 
 def local_chat(system: str, user: str) -> str:
-    """One local-model completion. Returns the assistant text."""
-    llm = get_local_llm()
-    resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
-    text = _THINK_RE.sub("", str(resp.content or "")).strip()
-    tracing.log_generation("local_chat", settings.LOCAL_MODEL, user, text)
-    return text
+    """One FAST-tier completion. Returns the assistant text."""
+    return get_llm_provider().complete_fast(system, user)
 
 
 def cloud_chat(
@@ -71,39 +39,10 @@ def cloud_chat(
     temperature: float | None = None,
     max_tokens: int | None = None,
 ) -> str:
-    """One cloud-model completion via the direct Ollama Cloud API (Bearer auth)."""
-    key = (settings.OLLAMA_API_KEY or "").strip()
-    if not key:
-        raise RuntimeError("OLLAMA_API_KEY is not configured for cloud generation.")
-    url = settings.OLLAMA_CLOUD_BASE_URL.rstrip("/") + "/api/chat"
-    payload = {
-        "model": settings.OLLAMA_CLOUD_MODEL,
-        "stream": False,
-        "options": {
-            "temperature": (
-                settings.CLOUD_TEMPERATURE if temperature is None else temperature
-            ),
-            "num_predict": max_tokens or settings.CLOUD_MAX_TOKENS,
-        },
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-    }
-    with httpx.Client(timeout=settings.CLOUD_TIMEOUT, verify=_SSL_CONTEXT) as client:
-        resp = client.post(url, json=payload, headers={"Authorization": f"Bearer {key}"})
-        if resp.status_code >= 400:
-            detail = resp.text
-            try:
-                detail = resp.json().get("error") or detail
-            except Exception:  # noqa: BLE001
-                pass
-            raise RuntimeError(f"Ollama Cloud failed (HTTP {resp.status_code}): {detail}")
-        data = resp.json()
-    content = (data.get("message") or {}).get("content") or ""
-    text = _THINK_RE.sub("", str(content)).strip()
-    tracing.log_generation("cloud_chat", settings.OLLAMA_CLOUD_MODEL, user, text)
-    return text
+    """One STRONG-tier completion. Returns the assistant text."""
+    return get_llm_provider().complete_strong(
+        system, user, temperature=temperature, max_tokens=max_tokens
+    )
 
 
 def extract_json(text: str) -> dict:

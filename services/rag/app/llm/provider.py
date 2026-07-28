@@ -3,7 +3,9 @@ LLM provider factory.
 
 Selects a concrete provider based on ``settings.LLM_PROVIDER``. Supported:
   * ``llama_cpp``     — local GGUF via llama-cpp-python
-  * ``ollama_cloud``  — cloud models via the local Ollama HTTP API
+  * ``ollama_cloud``  — cloud models via the direct Ollama Cloud API
+                        (``ollama`` is accepted as an alias)
+  * ``openai``        — OpenAI Chat Completions API (implemented; opt-in only)
 """
 
 from __future__ import annotations
@@ -17,7 +19,8 @@ _provider: LLMProvider | None = None
 _lock = threading.Lock()
 
 _LLAMA_CPP_ALIASES = {"llama_cpp", "llamacpp", "llama-cpp"}
-_OLLAMA_CLOUD_ALIASES = {"ollama_cloud", "ollama-cloud"}
+_OLLAMA_CLOUD_ALIASES = {"ollama_cloud", "ollama-cloud", "ollama"}
+_OPENAI_ALIASES = {"openai"}
 
 
 class UnimplementedProvider(LLMProvider):
@@ -47,6 +50,10 @@ def get_llm_provider() -> LLMProvider:
                     from app.llm.ollama_cloud_provider import OllamaCloudProvider
 
                     _provider = OllamaCloudProvider()
+                elif name in _OPENAI_ALIASES:
+                    from app.llm.openai_provider import OpenAIProvider
+
+                    _provider = OpenAIProvider()
                 else:
                     _provider = UnimplementedProvider(name or "unknown")
     return _provider

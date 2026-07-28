@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     # Retrieval and ingestion never talk to the LLM directly.
     #   LLM_PROVIDER = "llama_cpp"     -> local GGUF via llama-cpp-python
     #   LLM_PROVIDER = "ollama_cloud"  -> direct Ollama Cloud API (HTTPS + key)
+    #   LLM_PROVIDER = "openai"        -> OpenAI Chat Completions (implemented;
+    #                                     opt-in only, no key required until set)
     LLM_PROVIDER: str = "llama_cpp"
 
     # ── Ollama Cloud generation (direct API, NOT the local daemon) ────
@@ -67,6 +69,13 @@ class Settings(BaseSettings):
     OLLAMA_CLOUD_BASE_URL: str = "https://ollama.com"
     OLLAMA_API_KEY: str = ""                    # required when LLM_PROVIDER=ollama_cloud
     OLLAMA_CLOUD_MODEL: str = "gemma4:31b"      # cloud model name (no ":cloud" suffix)
+
+    # ── OpenAI generation (direct API, NOT active) ───────────────────
+    # Used only when LLM_PROVIDER=openai. No key required until then; the key
+    # is validated at call time, never at import. Embeddings stay local Ollama.
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_MODEL: str = "gpt-4o"
 
     # ── llama.cpp / local GGUF model ─────────────────────────────────
     LLM_MODEL_PATH: str = ""                  # absolute path to the .gguf file
