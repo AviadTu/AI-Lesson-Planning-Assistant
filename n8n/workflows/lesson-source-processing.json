@@ -3,27 +3,26 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "776e7737-2ad9-496f-998f-58d692888726",
+      "id": "9ec2e34c-54c2-4974-a7fe-30eb67efb650",
       "name": "Source Input",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [
-        0,
-        480
+        80,
+        496
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const t = $json; const message = t.message || ''; const items = [];\nitems.push({ json: { source_type:'rag', message, session_id: t.session_id } });\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nfor (const url of urls) {\n  const isYt = /youtube\\.com|youtu\\.be/i.test(url);\n  if (isYt) { const vid = (url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/)||[])[1] || '';\n    items.push({ json: { source_type:'youtube', url, vid, page_url:'https://www.youtube.com/watch?v='+vid, message } }); }\n  else items.push({ json: { source_type:'article', url, message } });\n}\nlet ppx=''; try { ppx = $env.PERPLEXITY_API_KEY || ''; } catch(e){}\nif (ppx) items.push({ json: { source_type:'web', message } });\nreturn items;"
+        "jsCode": "const t=$json; const message=t.message||''; const items=[];\nitems.push({json:{source_type:'rag',message,session_id:t.session_id}});\nconst urls=message.match(/https?:\\/\\/[^\\s)]+/g)||[];\nfor(const url of urls){ if(/youtube\\.com|youtu\\.be/i.test(url)) items.push({json:{source_type:'youtube',url,message}});\n  else items.push({json:{source_type:'article',url,message}}); }\n// web search: feature-flagged (want_web flag AND a Perplexity key present)\nlet ppx=''; try{ppx=$env.PERPLEXITY_API_KEY||'';}catch(e){}\nif((t.want_web||/חפש|באינטרנט|web|perplexity/i.test(message)) && ppx) items.push({json:{source_type:'web',message}});\n// attachments: documents & images (base64 from Gateway)\nfor(const a of (t.attachments||[])){ if(a.kind==='document') items.push({json:{source_type:'document',filename:a.filename,mime:a.mime,content_base64:a.content_base64}});\n  else if(a.kind==='image'){ let en=''; try{en=$env.IMAGE_PROVIDER||'';}catch(e){}\n    if(en) items.push({json:{source_type:'image',filename:a.filename,mime:a.mime,content_base64:a.content_base64}});\n    else items.push({json:{source_type:'_failed',failed:{type:'image',reason:'image provider disabled',filename:a.filename}}}); } }\nreturn items;"
       },
-      "id": "5dd36734-5378-4ceb-81a4-b0957e5d5728",
+      "id": "843108de-596a-4708-a84d-10b7a507a9ec",
       "name": "Detect Source Types",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
-        480
+        304,
+        496
       ]
     },
     {
@@ -35,11 +34,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "015533be-adbf-47c6-b708-986e59b3f3c8",
+                    "id": "273a689e-cc60-4b22-8321-7aa62d6416b5",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "rag",
                     "operator": {
@@ -59,11 +59,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "6d6dec95-addf-4809-aab1-d9d5a54c8334",
+                    "id": "90daf5d6-3ee9-4ca8-a3a7-5e237fd57633",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "article",
                     "operator": {
@@ -83,11 +84,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "15f71bf9-eadf-4d56-a66f-f1145b38f4e7",
+                    "id": "c6014e9b-d290-4a23-9847-99a6714296a9",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "youtube",
                     "operator": {
@@ -107,11 +109,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "10ec1190-275f-4a23-bc55-f290a288a011",
+                    "id": "1eb0f0ec-5f5c-4050-84dc-7820fa859664",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "web",
                     "operator": {
@@ -131,11 +134,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "f738f103-8c71-41c4-9bae-553b9c4eda60",
+                    "id": "0676b26a-3f3b-4d38-84e9-4086e8b71fdb",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "document",
                     "operator": {
@@ -155,11 +159,12 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose"
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
-                    "id": "73b75a7a-c933-47f6-ab05-bc47b61c8d5b",
+                    "id": "ed524ddf-fc4a-46d1-b428-e42110a0a9a3",
                     "leftValue": "={{ $json.source_type }}",
                     "rightValue": "image",
                     "operator": {
@@ -173,18 +178,45 @@
               },
               "renameOutput": true,
               "outputKey": "image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "f41858c6-ce7b-412d-9798-131b016afa28",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "_failed"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "fallbackOutput": "none"
+        }
       },
-      "id": "97f5fd4c-7a6a-4b77-913e-b119ebe3d67c",
+      "id": "495a4c0e-f91b-4d95-af65-261c0fd01d1c",
       "name": "Switch",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        460,
-        480
+        528,
+        416
       ]
     },
     {
@@ -198,235 +230,492 @@
           "timeout": 120000
         }
       },
-      "id": "4f09db36-3c46-4f24-86d8-86477f96dfbe",
+      "id": "c6709548-37ef-4098-99ee-db8188c61e3e",
       "name": "RAG Retrieval",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        700,
-        120
+        1424,
+        -80
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const chunks = ($json.chunks) || [];\n// Always emit >=1 item so the aggregate always runs (empty KB => marker,\n// filtered out in Return Unified Context).\nif (!chunks.length) return [{ json: { type:'_marker', title:'', text:'', url:null, citation:'', dkey:'_marker' } }];\nreturn chunks.map(c => ({ json: { type:'rag', title: c.original_filename || 'knowledge base',\n  text: c.text || '', url: null, citation: c.original_filename || 'RAG',\n  dkey: 'rag||' + String(c.text||'').slice(0,80) } }));"
+        "jsCode": "const c=($json.chunks)||[];\nif(!c.length) return [{json:{source_type:'_marker',type:'_marker',text:'',dkey:'_marker'}}];\nreturn c.map(x=>({json:{type:'rag',title:x.original_filename||'knowledge base',text:x.text||'',url:null,citation:x.original_filename||'RAG',metadata:{doc_id:x.doc_id,page:x.page_number},dkey:'rag||'+String(x.text||'').slice(0,80)}}));"
       },
-      "id": "5b3c4fc4-e836-448c-8b31-8ae5317e7ff6",
+      "id": "5084e0e4-04b6-4207-bedd-b779287ee89a",
       "name": "Normalize RAG",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
-        120
+        1648,
+        -80
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
-      "id": "b43f25ea-bfad-438f-b300-7abb89e0b548",
-      "name": "Article URL Extraction",
+      "id": "36911f0e-3df9-4efc-9bde-d23daba84bcb",
+      "name": "Fetch Article",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        700,
-        300
+        1200,
+        112
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\nconst url = $('Detect Source Types').item.json.url;\nconst text = strip($json.data ?? $json.body ?? '').slice(0,4000);\nreturn [{ json: { type:'url', title:url, text, url, citation:url, dkey:'url|'+url+'|'+text.slice(0,80) } }];"
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "text",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "e5e5bf17-5cd4-49cf-a526-f188bee4cab3",
+      "id": "3bc172fc-8f75-4836-84f5-60236abc1221",
+      "name": "Extract HTML Content",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1424,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const url=$('Detect Source Types').item.json.url;\nconst text=String($json.text||'').replace(/\\s+/g,' ').trim().slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'url',url,reason:'could not extract article text'},dkey:'fail-'+url}}];\nreturn [{json:{type:'url',title:url,text,url,citation:url,metadata:{},dkey:'url|'+url+'|'+text.slice(0,80)}}];"
+      },
+      "id": "b3de9fed-dc53-47a6-b84b-ba90b1aab00b",
       "name": "Normalize Article",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
-        300
+        1648,
+        112
       ]
     },
     {
       "parameters": {
-        "method": "GET",
+        "jsCode": "const url=$json.url||''; const vid=(url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/)||[])[1]||'';\nreturn [{json:{url,vid,page_url:'https://www.youtube.com/watch?v='+vid}}];"
+      },
+      "id": "75d8d11e-49fe-4a61-9c15-b7bc61d9c998",
+      "name": "Extract Video ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        304
+      ]
+    },
+    {
+      "parameters": {
         "url": "={{ $json.page_url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
-      "id": "c554d92f-db98-4bd0-80e6-b3a569470c8a",
+      "id": "54570050-c539-4262-bb2d-145bf56b08fe",
       "name": "YouTube Page",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        700,
-        480
+        976,
+        304
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const m = String($json.data||'').match(/\"captionTracks\":(\\[.*?\\])/);\nlet cap=''; if(m){ try{ const t=JSON.parse(m[1].replace(/\\\\u0026/g,'&')); if(t.length&&t[0].baseUrl) cap=t[0].baseUrl; }catch(e){} }\nconst src = $('Detect Source Types').item.json;\nreturn [{ json: { cap_url: cap, url: src.url } }];"
+        "jsCode": "const html=String($json.data||''); const m=html.match(/\"captionTracks\":(\\[.*?\\])/);\nlet cap=''; if(m){try{const t=JSON.parse(m[1].replace(/\\\\u0026/g,'&')); if(t.length&&t[0].baseUrl) cap=t[0].baseUrl;}catch(e){}}\nconst tm=html.match(/<title>([^<]*)<\\/title>/); const title=tm?tm[1].replace(' - YouTube',''):'YouTube';\nconst src=$('Extract Video ID').item.json;\nreturn [{json:{cap_url:cap,url:src.url,title}}];"
       },
-      "id": "2a32654d-5f66-4045-8409-cfd91ebc6288",
+      "id": "ee766088-e553-478b-8442-f7fa5ff942a8",
       "name": "Extract Caption URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        900,
-        480
+        1200,
+        304
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.cap_url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
-      "id": "288ff54f-9a7e-4d70-94ef-f768322c982f",
-      "name": "Fetch Transcript",
+      "id": "685af662-350e-41f4-ab23-8fda0e31f86e",
+      "name": "Retrieve Transcript",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1100,
-        480
+        1424,
+        304
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\nconst url = $('Extract Caption URL').item.json.url;\nconst text = strip($json.data ?? '').slice(0,4000);\nreturn [{ json: { type:'youtube', title:'\\u05ea\\u05de\\u05dc\\u05d5\\u05dc \\u05e1\\u05e8\\u05d8\\u05d5\\u05df YouTube', text, url, citation:url, dkey:'youtube|'+url+'|'+text.slice(0,80) } }];"
+        "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\n const c=$('Extract Caption URL').item.json; const text=strip($json.data||'').slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'youtube',url:c.url,reason:'no captions available'},dkey:'fail-'+c.url}}];\nreturn [{json:{type:'youtube',title:c.title||'YouTube',text,url:c.url,citation:c.url,metadata:{},dkey:'yt|'+c.url+'|'+text.slice(0,80)}}];"
       },
-      "id": "2f48ad29-f707-4be5-81c1-a8222ccf821c",
+      "id": "9fa0763c-e333-44bf-8784-e719d10b9c0b",
       "name": "Normalize YouTube",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1300,
-        480
+        1648,
+        304
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "57f7fc32-6bb7-48e7-b9dc-661a844bcbaf",
+      "name": "Perplexity Search",
+      "type": "n8n-nodes-base.perplexity",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        496
+      ],
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=($json.message&&$json.message.content)||($json.choices&&$json.choices[0]&&$json.choices[0].message&&$json.choices[0].message.content)||$json.text||'';\nif(!c) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'web',reason:'perplexity returned no content'},dkey:'fail-web'}}];\nreturn [{json:{type:'web',title:'חיפוש רשת (Perplexity)',text:c,url:null,citation:'Perplexity',metadata:{},dkey:'web||'+String(c).slice(0,80)}}];"
+      },
+      "id": "ededed41-a23e-439a-bf29-818f4ff220c4",
+      "name": "Normalize Web",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        496
       ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.perplexity.ai/chat/completions",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { \"model\": \"sonar\", \"messages\": [ { \"role\": \"user\", \"content\": $json.message } ] } }}",
+        "operation": "toBinary",
+        "sourceProperty": "content_base64",
         "options": {
-          "timeout": 30000
+          "fileName": "={{ $json.filename }}"
         }
       },
-      "id": "493f2c4b-43bf-4883-98e4-9690fde2164d",
-      "name": "Perplexity Search",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "940ef5dd-11bb-4b34-9f18-5435db59c799",
+      "name": "To Binary",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
       "position": [
-        700,
-        660
+        752,
+        976
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const c = ($json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content) || '';\nreturn [{ json: { type:'web', title:'\\u05d7\\u05d9\\u05e4\\u05d5\\u05e9 \\u05e8\\u05e9\\u05ea (Perplexity)', text:c, url:null, citation:'Perplexity', dkey:'web||'+String(c).slice(0,80) } }];"
+        "jsCode": "const a=$('Detect Source Types').item.json; const fn=(a.filename||'').toLowerCase(); const mime=(a.mime||'').toLowerCase();\nlet ftype='unknown';\nif(mime.includes('pdf')||fn.endsWith('.pdf')) ftype='pdf';\nelse if(mime.includes('word')||fn.endsWith('.docx')) ftype='docx';\nelse if(mime.includes('text')||fn.endsWith('.txt')) ftype='txt';\nreturn [{json:{file_type:ftype,filename:a.filename,mime:a.mime,content_base64:a.content_base64},binary:$binary}];"
       },
-      "id": "6880aab7-ab3e-4db7-91fb-47cc86b4c741",
-      "name": "Normalize Web",
+      "id": "b0d3f898-ffeb-4c88-88f0-f11ab474f0fe",
+      "name": "Detect File Type",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
-        660
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "0e88522b-092e-4109-a437-05b061a6aae5",
-      "name": "Document Extraction",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        700,
-        820
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "0fa6dde6-853b-4df0-8de2-ee0f6217ee60",
-      "name": "Image Analysis",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        700,
-        960
+        976,
+        976
       ]
     },
     {
       "parameters": {
-        "mode": "append",
-        "numberInputs": 6
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "f155f32e-c041-4982-9981-49c19ac2e71e",
+                    "leftValue": "={{ $json.file_type }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "abe230a6-d702-4613-beaa-83164f71fdf1",
+                    "leftValue": "={{ $json.file_type }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "docx"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "9abb7440-4ede-41cb-a65e-bb6ab22209d8",
+                    "leftValue": "={{ $json.file_type }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "txt"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
-      "id": "ed47bbab-3ef0-4ef8-af82-a6fd3368d02c",
+      "id": "007f4d8f-e6ee-4462-a496-a172c881f627",
+      "name": "Switch by File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "2c19a627-7b7e-4073-a10d-49a26eda9666",
+      "name": "Extract PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        688
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "id": "a56dcc74-e3e6-4984-9abc-fed6f5f17881",
+      "name": "Extract TXT",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        1072
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/internal/extract",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"filename\": $json.filename, \"mime\": $json.mime, \"content_base64\": $json.content_base64 } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "14a660de-c80e-4492-bdd4-f5669bf7a088",
+      "name": "Extract DOCX (helper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        880
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$json; return [{json:{source_type:'_failed',type:'_failed',failed:{type:'document',filename:a.filename,reason:'unsupported file format'},dkey:'fail-'+(a.filename||'doc')}}];"
+      },
+      "id": "6921b104-dc5e-429c-ba85-32bc86147462",
+      "name": "Unsupported Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Detect Source Types').item.json;\nconst text=($json.text||$json.data||$json.extracted||'').toString().replace(/\\s+/g,' ').trim().slice(0,6000);\nconst fn=a.filename||'document';\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'document',filename:fn,reason:'no text extracted'},dkey:'fail-'+fn}}];\nreturn [{json:{type:'document',title:fn,text,url:null,citation:fn,metadata:{mime:a.mime,filename:fn},dkey:'doc|'+fn+'|'+text.slice(0,80)}}];"
+      },
+      "id": "8f5e7a22-2163-4ce8-b2e1-259276941b65",
+      "name": "Normalize Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "content_base64",
+        "options": {
+          "fileName": "={{ $json.filename }}"
+        }
+      },
+      "id": "003e057b-6541-429b-9492-4746d796f242",
+      "name": "Image To Binary",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        1424
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "text": "תאר את התוכן החינוכי בתמונה בעברית.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "id": "65d7eeb8-b07f-47a7-935e-5a8b1777d38c",
+      "name": "Analyze Image",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1424,
+        1424
+      ],
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Detect Source Types').item.json; const fn=a.filename||'image';\nconst text=($json.content||$json.text||'').toString().trim().slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'image',filename:fn,reason:'image analysis failed'},dkey:'fail-'+fn}}];\nreturn [{json:{type:'image',title:fn,text,url:null,citation:fn,metadata:{filename:fn,mime:a.mime},dkey:'img|'+fn+'|'+text.slice(0,80)}}];"
+      },
+      "id": "54bdc80c-6a9e-4c02-b8dd-a7e81e6b9d70",
+      "name": "Normalize Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const f=$json.failed||{type:'unknown',reason:'unknown'};\nreturn [{json:{source_type:'_failed',type:'_failed',failed:f,dkey:'fail-'+(f.filename||f.type||'x')}}];"
+      },
+      "id": "52bf8d40-eb8e-468a-a47c-f21d4ef8df93",
+      "name": "Record Failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 7
+      },
+      "id": "2d014a27-4bf7-48c1-9437-101d74167b7d",
       "name": "Merge Sources",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.1,
       "position": [
-        1560,
-        480
+        1872,
+        608
       ]
     },
     {
       "parameters": {
-        "operation": "removeDuplicateInputItems",
         "compare": "selectedFields",
         "fieldsToCompare": "dkey",
         "options": {}
       },
-      "id": "1f8bcc85-86ba-4a9c-ad9d-66b47db29033",
+      "id": "4755886d-a9c4-4042-9843-60883dd5e6a5",
       "name": "Remove Duplicates",
       "type": "n8n-nodes-base.removeDuplicates",
       "typeVersion": 2,
       "position": [
-        1760,
-        480
+        2096,
+        688
       ]
     },
     {
@@ -434,7 +723,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "e1f30ead-c411-4ffd-ad54-6e023114dc00",
+              "id": "d47e1596-1cda-423f-ad61-496d7d0adec8",
               "name": "citation",
               "value": "={{ $json.citation || $json.title || $json.url || 'source' }}",
               "type": "string"
@@ -444,38 +733,26 @@
         "includeOtherFields": true,
         "options": {}
       },
-      "id": "20066ed5-f4a3-4256-8961-84e521a36e41",
+      "id": "cb42715b-2178-44be-b824-1750be4a6461",
       "name": "Preserve Citations",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1960,
-        480
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "1493ca1f-ebe6-49b5-b0b8-a083d0e6d4b9",
-      "name": "Partial Failure Handling",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        2160,
-        480
+        2320,
+        688
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const items = $input.all();\n// Partial-failure handling: drop the empty-KB marker and any empty/failed source.\nconst sources = items.map(i => i.json)\n  .filter(s => s && s.type && s.type !== '_marker' && s.text)\n  .map(s => ({ type:s.type, title:s.title, text:s.text, url:(s.url ?? null), citation:s.citation }));\nreturn [{ json: { sources, warnings: [], count: sources.length } }];"
+        "jsCode": "const items=$input.all().map(i=>i.json);\nconst sources=items.filter(s=>s&&s.type&&!['_marker','_failed'].includes(s.type)&&s.text)\n  .map(s=>({type:s.type,title:s.title,text:s.text,url:(s.url??null),citation:s.citation,metadata:s.metadata||{}}));\nconst failed=items.filter(s=>s&&s.type==='_failed').map(s=>s.failed);\nconst warnings=failed.map(f=>`מקור מסוג ${f.type} נכשל: ${f.reason||''}`.trim());\nreturn [{json:{sources,warnings,failed_sources:failed,count:sources.length}}];"
       },
-      "id": "da343532-be8c-43b7-8519-8b070301cac5",
+      "id": "8da61b8b-73c3-4679-86c0-23ac9129ad00",
       "name": "Return Unified Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2360,
-        480
+        2544,
+        688
       ]
     }
   ],
@@ -513,14 +790,14 @@
         ],
         [
           {
-            "node": "Article URL Extraction",
+            "node": "Fetch Article",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "YouTube Page",
+            "node": "Extract Video ID",
             "type": "main",
             "index": 0
           }
@@ -534,14 +811,21 @@
         ],
         [
           {
-            "node": "Document Extraction",
+            "node": "To Binary",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Image Analysis",
+            "node": "Image To Binary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Failed",
             "type": "main",
             "index": 0
           }
@@ -570,7 +854,18 @@
         ]
       ]
     },
-    "Article URL Extraction": {
+    "Fetch Article": {
+      "main": [
+        [
+          {
+            "node": "Extract HTML Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract HTML Content": {
       "main": [
         [
           {
@@ -592,6 +887,17 @@
         ]
       ]
     },
+    "Extract Video ID": {
+      "main": [
+        [
+          {
+            "node": "YouTube Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "YouTube Page": {
       "main": [
         [
@@ -607,14 +913,14 @@
       "main": [
         [
           {
-            "node": "Fetch Transcript",
+            "node": "Retrieve Transcript",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch Transcript": {
+    "Retrieve Transcript": {
       "main": [
         [
           {
@@ -658,7 +964,94 @@
         ]
       ]
     },
-    "Document Extraction": {
+    "To Binary": {
+      "main": [
+        [
+          {
+            "node": "Detect File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect File Type": {
+      "main": [
+        [
+          {
+            "node": "Switch by File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract DOCX (helper)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unsupported Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          {
+            "node": "Normalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract DOCX (helper)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract TXT": {
+      "main": [
+        [
+          {
+            "node": "Normalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Document": {
       "main": [
         [
           {
@@ -669,13 +1062,57 @@
         ]
       ]
     },
-    "Image Analysis": {
+    "Unsupported Format": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Image To Binary": {
+      "main": [
+        [
+          {
+            "node": "Analyze Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Image": {
+      "main": [
+        [
+          {
+            "node": "Normalize Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Image": {
       "main": [
         [
           {
             "node": "Merge Sources",
             "type": "main",
             "index": 5
+          }
+        ]
+      ]
+    },
+    "Record Failed": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 6
           }
         ]
       ]
@@ -706,17 +1143,6 @@
       "main": [
         [
           {
-            "node": "Partial Failure Handling",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Partial Failure Handling": {
-      "main": [
-        [
-          {
             "node": "Return Unified Context",
             "type": "main",
             "index": 0
@@ -726,6 +1152,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   }
 }

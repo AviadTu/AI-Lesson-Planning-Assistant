@@ -84,6 +84,18 @@ def init_db() -> None:
                 pending_topic  TEXT,
                 updated_at     TEXT    NOT NULL
             );
+
+            -- Files/images uploaded as temporary lesson sources (not KB), held
+            -- until the next lesson turn forwards them to n8n as attachments.
+            CREATE TABLE IF NOT EXISTS lesson_pending_sources (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id      TEXT    NOT NULL,
+                kind            TEXT    NOT NULL,     -- 'document' | 'image'
+                filename        TEXT,
+                mime            TEXT,
+                content_base64  TEXT    NOT NULL,
+                created_at      TEXT    NOT NULL
+            );
             """
         )
 
@@ -187,6 +199,35 @@ def set_lesson_mode(
             """,
             (session_id, int(new_active), int(new_pending), new_topic, _now()),
         )
+
+
+# ── Pending lesson-source attachments (uploaded in lesson mode) ──────
+def add_pending_source(
+    session_id: str, kind: str, filename: str, mime: str, content_base64: str
+) -> None:
+    with _get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO lesson_pending_sources
+                (session_id, kind, filename, mime, content_base64, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (session_id, kind, filename, mime, content_base64, _now()),
+        )
+
+
+def pop_pending_sources(session_id: str) -> list[dict]:
+    """Return and delete all pending lesson-source attachments for a session."""
+    with _get_db() as conn:
+        rows = conn.execute(
+            "SELECT kind, filename, mime, content_base64 FROM lesson_pending_sources "
+            "WHERE session_id = ? ORDER BY id ASC",
+            (session_id,),
+        ).fetchall()
+        conn.execute(
+            "DELETE FROM lesson_pending_sources WHERE session_id = ?", (session_id,)
+        )
+    return [dict(r) for r in rows]
 
 
 def _now() -> str:

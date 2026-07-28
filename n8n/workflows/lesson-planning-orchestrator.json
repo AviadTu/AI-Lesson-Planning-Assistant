@@ -8,27 +8,27 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "ff594c99-6873-42c9-b6e9-50616e301f0d",
+      "id": "fb8f3bc2-a8a4-4a9f-a419-61c39878062f",
       "name": "Webhook In",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        180,
+        160,
         300
       ],
-      "webhookId": "4e2b7db2-91ad-4d72-af95-fc13da45e614"
+      "webhookId": "e1d7605d-5ad4-4255-8c42-b0d16f68709e"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const b = $json.body || {};\nconst session_id = String(b.session_id || '').trim();\nconst message = String(b.message || '').trim();\nreturn [{ json: { session_id, message, valid: !!(session_id && message) } }];"
+        "jsCode": "const b=$json.body||{};\nconst session_id=String(b.session_id||'').trim();\nconst message=String(b.message||'').trim();\nreturn [{json:{session_id,message,want_web:!!b.want_web,attachments:Array.isArray(b.attachments)?b.attachments:[],valid:!!(session_id&&message)}}];"
       },
-      "id": "21848e83-bf9d-4315-be8d-9fa7d90cdeaf",
+      "id": "62df7c8b-b818-4b28-ba69-18b7cd58c0c8",
       "name": "Intake & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        380,
+        360,
         300
       ]
     },
@@ -42,7 +42,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "9f183ebd-d632-4c54-90e3-768ab5c7b1a6",
+              "id": "a56355c2-e99e-411d-a489-dd761120ee47",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
               "operator": {
@@ -54,12 +54,12 @@
           ]
         }
       },
-      "id": "3a0fbfab-ebf7-4179-9631-c17e9a34606f",
+      "id": "0ef38423-d722-48f1-8ca6-1f4abd34d006",
       "name": "Is Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        580,
+        560,
         300
       ]
     },
@@ -69,7 +69,7 @@
         "responseBody": "={{ { \"answer\": \"בקשה לא תקינה: חסר מזהה שיחה או הודעה.\" } }}",
         "options": {}
       },
-      "id": "938f3864-5216-4c2c-949e-42d6b2014fc1",
+      "id": "9a1cd945-1f2b-4e96-91e3-568339bac8e0",
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -81,9 +81,9 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const message = $json.message;\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nconst youtube = urls.filter(u => /youtube\\.com|youtu\\.be/i.test(u));\nconst articles = urls.filter(u => !/youtube\\.com|youtu\\.be/i.test(u));\nreturn [{ json: { session_id: $json.session_id, message,\n  detected: { article_urls: articles, youtube_urls: youtube, rag: true, url_count: urls.length } } }];"
+        "jsCode": "const message=$json.message; const urls=message.match(/https?:\\/\\/[^\\s)]+/g)||[];\nconst youtube=urls.filter(u=>/youtube\\.com|youtu\\.be/i.test(u));\nconst articles=urls.filter(u=>!/youtube\\.com|youtu\\.be/i.test(u));\nreturn [{json:{session_id:$json.session_id,message,want_web:$json.want_web,attachments:$json.attachments,\n  detected:{article_urls:articles,youtube_urls:youtube,rag:true,attachment_count:($json.attachments||[]).length}}}];"
       },
-      "id": "a3be3294-fd4b-4a47-b7ad-57ccc64e4024",
+      "id": "8598ba28-0a68-4870-a57a-3cdf560e8a39",
       "name": "Detect Sources",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -101,8 +101,8 @@
         },
         "options": {}
       },
-      "id": "f47f8156-d97f-476b-933b-0352a5c60ef6",
-      "name": "Source Processing",
+      "id": "f3494a86-6df2-45d4-a3f3-dc53c1e27462",
+      "name": "Execute Lesson Source Processing",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
@@ -113,14 +113,28 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const sp = $json || {};\nconst base = $('Detect Sources').first().json;\nreturn [{ json: { session_id: base.session_id, message: base.message,\n  sources: sp.sources || [], warnings: sp.warnings || [] } }];"
+        "jsCode": "const sp=$json||{}; const base=$('Detect Sources').first().json;\nconst sources=sp.sources||[]; const warnings=sp.warnings||[]; const failed=sp.failed_sources||[];\nreturn [{json:{session_id:base.session_id,message:base.message,sources,warnings,failed_sources:failed,\n  source_count:sources.length}}];"
       },
-      "id": "4b0f72aa-86a4-493f-8ab4-831192679282",
-      "name": "Build Agent Request",
+      "id": "124b68e6-23f1-47ba-a038-e57866369678",
+      "name": "Inspect Source Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{json:{session_id:$json.session_id,message:$json.message,sources:$json.sources||[],warnings:$json.warnings||[]}}];"
+      },
+      "id": "d5651d08-98c2-4106-8e11-101af3831e3a",
+      "name": "Build Agent Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
         200
       ]
     },
@@ -135,26 +149,26 @@
           "timeout": 300000
         }
       },
-      "id": "bbd3528b-27fc-487d-92f4-f8cc941815c6",
+      "id": "e7feb9b3-2a4f-465c-95dc-b3713a42af81",
       "name": "Lesson Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
+        1580,
         200
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const r = $json || {};\nlet answer = r.reply || '';\nconst warnings = ($('Build Agent Request').first().json.warnings) || [];\nif (r.stage === 'final' && r.lesson) {\n  const need = ['opening','central_idea','summary'];\n  const missing = need.filter(k => !r.lesson[k]);\n  if (missing.length) answer += '\\n\\n(הערה: חלק מהמקטעים חסרים — ניתן לבקש השלמה.)';\n}\nif (warnings.length) answer += '\\n\\n' + warnings.join('\\n');\nreturn [{ json: { answer, stage: r.stage || 'intake' } }];"
+        "jsCode": "const r=$json||{}; let answer=r.reply||'';\nconst warnings=($('Build Agent Request').first().json.warnings)||[];\nif(r.stage==='final'&&r.lesson){ const need=['opening','central_idea','summary']; const miss=need.filter(k=>!r.lesson[k]);\n  if(miss.length) answer+='\\n\\n(הערה: חלק מהמקטעים חסרים — ניתן לבקש השלמה.)'; }\nif(warnings.length) answer+='\\n\\n'+warnings.join('\\n');\nreturn [{json:{answer,stage:r.stage||'intake'}}];"
       },
-      "id": "fd2edb44-165b-43ad-b4f5-a5ab23e64fe4",
+      "id": "1af66052-2b7b-48ed-99f2-3bd3fb2df6f1",
       "name": "Validate Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1580,
+        1780,
         200
       ]
     },
@@ -164,12 +178,12 @@
         "responseBody": "={{ { \"answer\": $json.answer, \"stage\": $json.stage } }}",
         "options": {}
       },
-      "id": "4e8abdbe-74eb-43c1-af22-d651b873de9f",
+      "id": "edbe6d82-a1c7-40fb-89d8-6ed95cae307e",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1780,
+        1980,
         200
       ]
     }
@@ -219,14 +233,25 @@
       "main": [
         [
           {
-            "node": "Source Processing",
+            "node": "Execute Lesson Source Processing",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Source Processing": {
+    "Execute Lesson Source Processing": {
+      "main": [
+        [
+          {
+            "node": "Inspect Source Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Source Result": {
       "main": [
         [
           {

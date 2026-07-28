@@ -910,7 +910,11 @@ async function uploadFiles(files) {
   setDropZoneStatus('uploading');
 
   try {
-    const res  = await fetch('/upload', { method: 'POST', body: form });
+    const res  = await fetch('/upload', {
+      method: 'POST',
+      headers: appState.activeId ? { 'X-Session-Id': appState.activeId } : {},
+      body: form,
+    });
     const data = await res.json();
 
     if (data.errors && data.errors.length) {

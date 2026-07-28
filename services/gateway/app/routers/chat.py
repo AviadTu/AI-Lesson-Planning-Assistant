@@ -29,6 +29,7 @@ from app.database import (
     clear_session,
     get_history,
     get_lesson_mode,
+    pop_pending_sources,
     save_message,
     set_lesson_mode,
 )
@@ -72,9 +73,27 @@ async def _handle_lesson(session_id: str, user_message: str, mode: dict) -> dict
     set_lesson_mode(session_id, active=True, pending_offer=False, pending_topic="")
     save_message(session_id, role="user", content=user_message)
 
+    # Attach any files/images uploaded during this lesson session, and flag an
+    # explicit web-search request, so n8n's Source Processing can use them.
+    attachments = [
+        {
+            "kind": s["kind"],
+            "filename": s["filename"],
+            "mime": s["mime"],
+            "content_base64": s["content_base64"],
+        }
+        for s in pop_pending_sources(session_id)
+    ]
+    want_web = bool(routing.is_web_search_request(user_message))
+
     # A PDF/download/email request routes to the "Lesson PDF and Email" workflow;
     # everything else is a normal lesson-planning turn (Lesson Orchestrator).
-    payload = {"session_id": session_id, "message": forward_message}
+    payload = {
+        "session_id": session_id,
+        "message": forward_message,
+        "want_web": want_web,
+        "attachments": attachments,
+    }
     try:
         if routing.is_export_request(user_message):
             result = await n8n_client.trigger_export(payload)

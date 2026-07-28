@@ -9,15 +9,28 @@ no changes beyond the ``s3_key`` -> ``doc_id`` rename.
 
 from __future__ import annotations
 
+import base64
+
 import httpx
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Header, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.clients import rag_client
 from app.config import settings
-from app.schemas import DeleteDocumentRequest
+from app.database import add_pending_source, get_lesson_mode
+from app.extract import ExtractError, extract_text
+from app.schemas import DeleteDocumentRequest, ExtractRequest
 
 router = APIRouter()
+
+_IMAGE_EXTS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
+
+
+def _source_kind(filename: str, content_type: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext in _IMAGE_EXTS or (content_type or "").startswith("image/"):
+        return "image"
+    return "document"
 
 
 @router.get("/documents")
@@ -32,6 +45,7 @@ async def list_documents():
 async def upload(
     files: list[UploadFile] = File(default=[]),
     file: UploadFile | None = File(default=None),
+    x_session_id: str | None = Header(default=None),
 ):
     # Accept both the "files" (multiple) and "file" (single) form fields.
     incoming = list(files) if files else []
@@ -43,7 +57,7 @@ async def upload(
         )
 
     max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
-    payload: list[tuple[str, bytes, str]] = []
+    read: list[tuple[str, bytes, str]] = []
     for upload_file in incoming:
         content = await upload_file.read()
         if len(content) > max_bytes:
@@ -54,7 +68,7 @@ async def upload(
                 },
                 status_code=413,
             )
-        payload.append(
+        read.append(
             (
                 upload_file.filename or "(unnamed)",
                 content,
@@ -62,13 +76,48 @@ async def upload(
             )
         )
 
+    # Route by intent: while a session is in lesson-planning mode, uploads are
+    # temporary LESSON SOURCES (held for the next turn -> n8n); otherwise they
+    # are permanent KB ingestion via the independent RAG service (unchanged).
+    session_id = (x_session_id or "").strip()
+    if session_id and get_lesson_mode(session_id).get("active"):
+        uploaded = []
+        for filename, content, content_type in read:
+            add_pending_source(
+                session_id,
+                _source_kind(filename, content_type),
+                filename,
+                content_type,
+                base64.b64encode(content).decode("ascii"),
+            )
+            uploaded.append({"original_filename": filename, "doc_id": filename})
+        return JSONResponse(
+            {"uploaded": uploaded, "errors": [], "ingesting": False,
+             "target": "lesson_source"},
+            status_code=200,
+        )
+
     try:
-        result = await rag_client.upload_documents(payload)
+        result = await rag_client.upload_documents(read)
     except httpx.HTTPError:
         return JSONResponse({"error": "Upload failed."}, status_code=502)
 
     status_code = 200 if result.get("uploaded") else 400
     return JSONResponse(result, status_code=status_code)
+
+
+@router.post("/internal/extract")
+async def internal_extract(payload: ExtractRequest):
+    """Extract text from a base64 document (used by n8n's DOCX source branch)."""
+    try:
+        data = base64.b64decode(payload.content_base64)
+    except Exception:  # noqa: BLE001
+        return JSONResponse({"error": "Invalid base64 content."}, status_code=400)
+    try:
+        text = extract_text(payload.filename or "", payload.mime or "", data)
+    except ExtractError as exc:
+        return JSONResponse({"error": str(exc), "text": ""}, status_code=422)
+    return {"text": text, "filename": payload.filename, "mime": payload.mime}
 
 
 @router.delete("/documents")

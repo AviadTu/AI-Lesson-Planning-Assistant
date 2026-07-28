@@ -88,6 +88,17 @@ def is_export_request(message: str) -> bool:
     return bool(_EXPORT_RE.search(message or ""))
 
 
+# Explicit web-search (Perplexity) request signal.
+_WEB_SEARCH_RE = re.compile(
+    r"חפש\s+(?:ב)?(?:אינטרנט|רשת|גוגל|רשת)|באינטרנט|ברשת|perplexity|web\s*search",
+    re.IGNORECASE,
+)
+
+
+def is_web_search_request(message: str) -> bool:
+    return bool(_WEB_SEARCH_RE.search(message or ""))
+
+
 def _looks_like_question(message: str) -> bool:
     return bool(_QUESTION_RE.search((message or "").strip()))
 

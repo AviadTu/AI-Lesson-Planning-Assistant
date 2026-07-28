@@ -42,3 +42,10 @@ class DeleteDocumentRequest(BaseModel):
 class PdfRequest(BaseModel):
     lesson: dict
     session_id: str | None = None
+
+
+# ── /internal/extract ────────────────────────────────────────────────
+class ExtractRequest(BaseModel):
+    filename: str | None = None
+    mime: str | None = None
+    content_base64: str

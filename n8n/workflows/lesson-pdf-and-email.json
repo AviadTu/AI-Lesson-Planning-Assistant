@@ -8,15 +8,15 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "4dc6d31c-b219-4d3c-9578-2e6ae6043221",
+      "id": "404e5d75-602c-4298-a70a-e8d3b91ac0b9",
       "name": "Webhook In",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        220,
+        160,
         300
       ],
-      "webhookId": "e8df2e48-580c-43b4-af21-598eaa4bb1d0"
+      "webhookId": "eff96ea6-738a-4244-a59c-27a256d72722"
     },
     {
       "parameters": {
@@ -26,12 +26,12 @@
           "timeout": 30000
         }
       },
-      "id": "697e1f11-b439-4311-a622-23ecd9a51334",
+      "id": "d8312fd8-dc74-4c0c-a9dd-485c3f403437",
       "name": "Get Lesson",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
+        360,
         300
       ],
       "onError": "continueRegularOutput"
@@ -47,12 +47,12 @@
           "timeout": 60000
         }
       },
-      "id": "744af543-e648-44fe-825b-2ca2038b5c31",
+      "id": "352c7629-908d-4001-9e27-8175c5af915d",
       "name": "Render PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
+        560,
         300
       ],
       "onError": "continueRegularOutput"
@@ -60,29 +60,106 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const gl = $('Get Lesson').first().json || {};\nconst rp = $input.first().json || {};\nconst msg = (($('Webhook In').first().json.body || {}).message) || '';\nconst wantEmail = /\\u05de\\u05d9\\u05d9\\u05dc|\\u05d0\\u05d9\\u05de\\u05d9\\u05d9\\u05dc|email/i.test(msg);\nif (!gl.has_lesson) {\n  return [{ json: { answer: '\\u05e2\\u05d3\\u05d9\\u05d9\\u05df \\u05d0\\u05d9\\u05df \\u05de\\u05e2\\u05e8\\u05da \\u05e9\\u05d9\\u05e2\\u05d5\\u05e8 \\u05de\\u05d5\\u05db\\u05df \\u05dc\\u05d4\\u05d5\\u05e8\\u05d3\\u05d4. \\u05e0\\u05e9\\u05dc\\u05d9\\u05dd \\u05d0\\u05d5\\u05ea\\u05d5 \\u05e7\\u05d5\\u05d3\\u05dd, \\u05d5\\u05d0\\u05d6 \\u05d0\\u05e4\\u05e9\\u05e8 \\u05dc\\u05d4\\u05e4\\u05d9\\u05e7 PDF.' } }];\n}\nif (rp && rp.download_url) {\n  let ans = '\\u05de\\u05e2\\u05e8\\u05da \\u05d4\\u05e9\\u05d9\\u05e2\\u05d5\\u05e8 \\u05de\\u05d5\\u05db\\u05df! [\\u05dc\\u05d4\\u05d5\\u05e8\\u05d3\\u05ea \\u05d4-PDF \\ud83d\\udcc4](' + rp.download_url + ')';\n  if (wantEmail) ans += '\\n\\n(\\u05e9\\u05dc\\u05d9\\u05d7\\u05d4 \\u05d1\\u05de\\u05d9\\u05d9\\u05dc \\u05d0\\u05d9\\u05e0\\u05d4 \\u05de\\u05d5\\u05d2\\u05d3\\u05e8\\u05ea \\u05db\\u05e8\\u05d2\\u05e2 \\u2014 \\u05d9\\u05e9 \\u05dc\\u05d4\\u05d2\\u05d3\\u05d9\\u05e8 SMTP \\u05d1-n8n.)';\n  return [{ json: { answer: ans, download_url: rp.download_url } }];\n}\nreturn [{ json: { answer: '\\u05d0\\u05d9\\u05e8\\u05e2\\u05d4 \\u05ea\\u05e7\\u05dc\\u05d4 \\u05d1\\u05d4\\u05e4\\u05e7\\u05ea \\u05d4-PDF. \\u05e0\\u05e1\\u05d4/\\u05d9 \\u05e9\\u05d5\\u05d1.' } }];"
+        "jsCode": "const gl=$('Get Lesson').first().json||{}; const rp=$input.first().json||{};\nconst msg=(($('Webhook In').first().json.body||{}).message)||'';\nconst em=(msg.match(/[\\w.+-]+@[\\w-]+\\.[\\w.-]+/)||[])[0]||'';\nconst wantEmail=/מייל|אימייל|email/i.test(msg);\nif(!gl.has_lesson) return [{json:{answer:'עדיין אין מערך שיעור מוכן להורדה. נשלים אותו קודם, ואז אפשר להפיק PDF.',want_email:false,download_url:''}}];\nif(rp&&rp.download_url){ let ans='מערך השיעור מוכן! [להורדת ה-PDF 📄]('+rp.download_url+')';\n  if(wantEmail&&!em) ans+='\\n\\nלשליחה במייל, ציין/י כתובת אימייל.';\n  else if(wantEmail&&em) ans+='\\n\\nאשלח את הקובץ לכתובת '+em+' (דורש הגדרת SMTP ב-n8n).';\n  return [{json:{answer:ans,want_email:(wantEmail&&!!em),download_url:rp.download_url,recipient:em,\n    lesson_title:((gl.lesson&&gl.lesson.meta&&gl.lesson.meta.title)||'מערך שיעור')}}]; }\nreturn [{json:{answer:'אירעה תקלה בהפקת ה-PDF. נסה/י שוב.',want_email:false,download_url:''}}];"
       },
-      "id": "0ff8b57a-19e0-4ca5-855e-51b016eb4c5f",
+      "id": "5c75f07c-64b9-4465-ad67-14fb796144de",
       "name": "Build Answer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
+        760,
         300
       ]
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "57d61b9c-73f6-4381-86c7-0ea9d31e05d1",
+              "leftValue": "={{ $json.want_email }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "afbf412b-f2f5-4e4f-b459-4513f894f373",
+      "name": "Wants Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://host.docker.internal:8000{{ $json.download_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "2661e19b-4816-4345-9b7f-591ffcbbb2b9",
+      "name": "Fetch PDF Binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        200
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $('Build Answer').first().json.recipient }}",
+        "subject": "={{ $('Build Answer').first().json.lesson_title }}",
+        "emailFormat": "text",
+        "text": "מצורף מערך השיעור שהופק.",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "id": "21d74091-56df-4328-bf05-1268f91b88eb",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1380,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "disabled": true,
+      "webhookId": "faec36f6-f54d-4486-8b57-f7482300ce88"
+    },
+    {
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"answer\": $json.answer } }}",
+        "responseBody": "={{ { \"answer\": $('Build Answer').first().json.answer } }}",
         "options": {}
       },
-      "id": "2970bd45-7c88-46cc-bfef-94ca4747db71",
+      "id": "ea67df31-c76a-4b5a-a6a7-deb4185ffb6b",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1100,
+        1580,
         300
       ]
     }
@@ -122,6 +199,46 @@
       ]
     },
     "Build Answer": {
+      "main": [
+        [
+          {
+            "node": "Wants Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wants Email?": {
+      "main": [
+        [
+          {
+            "node": "Fetch PDF Binary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch PDF Binary": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
       "main": [
         [
           {

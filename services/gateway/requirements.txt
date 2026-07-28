@@ -10,3 +10,7 @@ pydantic-settings
 # Local Hebrew/RTL PDF generation (lesson-plan export).
 fpdf2
 uharfbuzz        # HarfBuzz text shaping — correct Hebrew bidi/RTL
+
+# Lesson-source document extraction (/internal/extract; DOCX for n8n).
+pypdf
+python-docx
