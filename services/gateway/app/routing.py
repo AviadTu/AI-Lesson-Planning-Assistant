@@ -99,6 +99,32 @@ def is_web_search_request(message: str) -> bool:
     return bool(_WEB_SEARCH_RE.search(message or ""))
 
 
+# Pure greetings / thanks — handled deterministically (no RAG/embeddings/Chroma/
+# n8n/lesson-agent/LLM). Matched only when the whole message is a greeting.
+_GREETING_RE = re.compile(
+    r"^\s*(?:הי+|היי+|שלום|אהלן|אהלה|היה?לו|בוקר\s+טוב|צהריים\s+טובים|ערב\s+טוב|"
+    r"לילה\s+טוב|מה\s+נשמע|מה\s+קורה|מה\s+המצב|"
+    r"hi|hello|hey|yo|good\s+(?:morning|evening|afternoon|day))"
+    r"[\s!.,?׃־]*$",
+    re.IGNORECASE,
+)
+_THANKS_RE = re.compile(
+    r"^\s*(?:תודה(?:\s+רבה)?|תודות|יישר\s+כוח|thanks|thank\s+you|thx|ty|cheers)"
+    r"[\s!.,?׃־]*$",
+    re.IGNORECASE,
+)
+
+
+def greeting_kind(message: str) -> str | None:
+    """Return 'greeting' | 'thanks' for a pure greeting message, else None."""
+    m = message or ""
+    if _THANKS_RE.match(m):
+        return "thanks"
+    if _GREETING_RE.match(m):
+        return "greeting"
+    return None
+
+
 def _looks_like_question(message: str) -> bool:
     return bool(_QUESTION_RE.search((message or "").strip()))
 

@@ -61,11 +61,6 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY: str = ""
     LANGFUSE_HOST: str = "https://cloud.langfuse.com"
 
-    # ── Web search: Perplexity (optional, feature-flagged) ───────────
-    # Integration point for web research (used by n8n source processing).
-    # Absent key => the web-search branch is skipped, never an error.
-    PERPLEXITY_API_KEY: str = ""
-
 
 settings = Settings()
 

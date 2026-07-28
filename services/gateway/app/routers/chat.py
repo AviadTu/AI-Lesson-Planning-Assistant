@@ -45,6 +45,13 @@ _LESSON_OFFER = (
 # The RAG "no relevant information" sentinel (see RAG app/prompting.py).
 _RAG_NO_INFO = "לא נמצא מידע רלוונטי"
 
+# Deterministic greeting/thanks replies (no RAG/embeddings/n8n/agent/LLM).
+_GREETING_REPLY = (
+    "שלום! 👋 אני העוזר הפדגוגי. אפשר לשאול אותי שאלות על מאגר הידע, "
+    "או לבקש שאבנה יחד איתך מערך שיעור בנושא כלשהו. במה אפשר לעזור?"
+)
+_THANKS_REPLY = "בשמחה! 😊 אם תרצה/י עוד עזרה — אני כאן."
+
 
 def _resolve_session_id(x_session_id: str | None) -> str:
     """Return a valid session id from the header, or a fresh UUID."""
@@ -124,6 +131,17 @@ async def chat(payload: ChatRequest, x_session_id: str | None = Header(default=N
         return JSONResponse({"error": "Message must not be empty."}, status_code=400)
 
     session_id = _resolve_session_id(x_session_id)
+
+    # ── Deterministic greetings / thanks ─────────────────────────────
+    # Answered instantly with no RAG, embeddings, Chroma, n8n, lesson-agent or
+    # any LLM call. Keeps trivial turns well under a second.
+    greeting = routing.greeting_kind(user_message)
+    if greeting is not None:
+        reply = _THANKS_REPLY if greeting == "thanks" else _GREETING_REPLY
+        save_message(session_id, role="user", content=user_message)
+        save_message(session_id, role="assistant", content=reply, retrieved=[])
+        return {"answer": reply, "context": []}
+
     mode = get_lesson_mode(session_id)
 
     # ── Route: lesson planning (n8n) vs knowledge question (RAG) ──────
