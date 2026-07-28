@@ -6,3 +6,7 @@ httpx
 python-multipart
 jinja2
 pydantic-settings
+
+# Local Hebrew/RTL PDF generation (lesson-plan export).
+fpdf2
+uharfbuzz        # HarfBuzz text shaping — correct Hebrew bidi/RTL

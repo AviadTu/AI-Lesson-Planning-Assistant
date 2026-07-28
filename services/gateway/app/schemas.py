@@ -36,3 +36,9 @@ class HistoryResponse(BaseModel):
 # ── /documents ───────────────────────────────────────────────────────
 class DeleteDocumentRequest(BaseModel):
     doc_id: str
+
+
+# ── /internal/pdf ────────────────────────────────────────────────────
+class PdfRequest(BaseModel):
+    lesson: dict
+    session_id: str | None = None

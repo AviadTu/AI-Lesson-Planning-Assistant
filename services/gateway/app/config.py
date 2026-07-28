@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     LOCAL_OLLAMA_BASE_URL: str = "http://localhost:11434"
     INTENT_MODEL: str = "llama3.2:latest"
 
+    # ── PDF generation (local Hebrew/RTL via fpdf2 + uharfbuzz) ──────
+    # Font must contain Hebrew glyphs. Defaults to system Arial on Windows for
+    # the local demo; point at a Hebrew TTF (e.g. Noto Sans Hebrew) in Docker.
+    PDF_FONT_PATH: str = r"C:\Windows\Fonts\arial.ttf"
+    PDF_DIR: str = "./data/pdfs"
+
     # ── Conversation-memory tuning (see app/memory.py) ───────────────
     HISTORY_MAX_MESSAGES: int = 6
     HISTORY_MAX_CHARS: int = 500
