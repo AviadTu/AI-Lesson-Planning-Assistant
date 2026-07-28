@@ -56,6 +56,15 @@ _QUESTION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Teaching-context signal: words that hint the turn is about a lesson/class even
+# though it isn't an explicit build request. Used ONLY to gate the rare LLM
+# fallback — everything without this signal is decided deterministically.
+_LESSON_SIGNAL_RE = re.compile(
+    r"שיעור|מער(?:ך|כי)|כית[הת]|תלמיד|מור[הת]|הורא[הת]|פעילות|לימוד|מחנכ|"
+    r"lesson|class(?:room)?|teach|student|pupil|grade|curriculum|activity",
+    re.IGNORECASE,
+)
+
 
 def is_explicit_lesson(message: str) -> bool:
     return bool(_LESSON_RE.search(message or ""))
@@ -67,6 +76,10 @@ def is_affirmative(message: str) -> bool:
 
 def _looks_like_question(message: str) -> bool:
     return bool(_QUESTION_RE.search((message or "").strip()))
+
+
+def _has_lesson_signal(message: str) -> bool:
+    return bool(_LESSON_SIGNAL_RE.search(message or ""))
 
 
 def classify_intent_llm(message: str) -> str:
@@ -102,15 +115,23 @@ def decide_route(mode: dict, message: str) -> str:
     """
     Return "lesson" (→ n8n) or "rag" (→ RAG) for this turn.
 
-    ``mode`` is the session's persisted {active, pending_offer} flags. This
-    function is pure (no side effects); the caller persists any mode change.
+    Routing is DETERMINISTIC on the hot path (no LLM): active lesson session,
+    explicit lesson request, confirmation of a RAG-insufficient offer, and
+    ordinary knowledge questions are all decided by cheap rules. The local LLM
+    classifier is a *rare* fallback, used only when the message carries
+    teaching-context signal yet wasn't an explicit request — a genuinely
+    ambiguous case. Everything else defaults to RAG (a bare topic the user
+    actually wanted a lesson for is still caught later by the RAG-insufficient
+    offer). ``mode`` holds the session's persisted flags; this function is pure.
     """
-    if mode.get("active"):
+    if mode.get("active"):                                     # active session
         return "lesson"
-    if mode.get("pending_offer") and is_affirmative(message):
+    if mode.get("pending_offer") and is_affirmative(message):  # accepted offer
         return "lesson"
-    if is_explicit_lesson(message):
+    if is_explicit_lesson(message):                            # explicit request
         return "lesson"
-    if _looks_like_question(message):
+    if _looks_like_question(message):                          # knowledge question
         return "rag"
-    return "lesson" if classify_intent_llm(message) == "lesson" else "rag"
+    if _has_lesson_signal(message):                            # ambiguous → rare LLM
+        return "lesson" if classify_intent_llm(message) == "lesson" else "rag"
+    return "rag"                                               # deterministic default

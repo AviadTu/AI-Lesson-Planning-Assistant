@@ -96,7 +96,7 @@ if (Test-Url "$RagUrl/health") {
         -WorkingDirectory (Join-Path $Root 'services\rag') `
         -RedirectStandardOutput (Join-Path $LogDir 'rag.out.log') `
         -RedirectStandardError  (Join-Path $LogDir 'rag.err.log') `
-        -NoNewWindow | Out-Null
+        -WindowStyle Hidden | Out-Null
     if (Wait-Health "$RagUrl/health" 60) {
         Write-Status 'RAG' "healthy at $RagUrl" 'Green'
     } else {
@@ -113,7 +113,7 @@ if (Test-Url "$LessonAgentUrl/health") {
         -WorkingDirectory (Join-Path $Root 'services\lesson_agent') `
         -RedirectStandardOutput (Join-Path $LogDir 'lesson_agent.out.log') `
         -RedirectStandardError  (Join-Path $LogDir 'lesson_agent.err.log') `
-        -NoNewWindow | Out-Null
+        -WindowStyle Hidden | Out-Null
     if (Wait-Health "$LessonAgentUrl/health" 60) {
         Write-Status 'Agent' "healthy at $LessonAgentUrl" 'Green'
     } else {
@@ -130,7 +130,7 @@ if (Test-Url "$GatewayUrl/health") {
         -WorkingDirectory (Join-Path $Root 'services\gateway') `
         -RedirectStandardOutput (Join-Path $LogDir 'gateway.out.log') `
         -RedirectStandardError  (Join-Path $LogDir 'gateway.err.log') `
-        -NoNewWindow | Out-Null
+        -WindowStyle Hidden | Out-Null
     if (Wait-Health "$GatewayUrl/health" 60) {
         Write-Status 'Gateway' "healthy at $GatewayUrl" 'Green'
     } else {
