@@ -53,5 +53,19 @@ class Settings(BaseSettings):
     CLOUD_MAX_TOKENS: int = 1500
     CLOUD_TIMEOUT: float = 300.0
 
+    # ── Observability: Langfuse (optional, feature-flagged) ──────────
+    # Disabled by default and a strict no-op when keys are absent or the SDK
+    # is not installed — tracing must never block or break a request.
+    LANGFUSE_ENABLED: bool = False
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_HOST: str = "https://cloud.langfuse.com"
+
+    # ── Web search: Perplexity (optional, feature-flagged) ───────────
+    # Integration point for web research (used by n8n source processing).
+    # Absent key => the web-search branch is skipped, never an error.
+    PERPLEXITY_API_KEY: str = ""
+
 
 settings = Settings()
+

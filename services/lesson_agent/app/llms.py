@@ -27,6 +27,7 @@ import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
+from app import tracing
 from app.config import settings
 
 logger = logging.getLogger("lesson_agent.llms")
@@ -58,7 +59,9 @@ def local_chat(system: str, user: str) -> str:
     """One local-model completion. Returns the assistant text."""
     llm = get_local_llm()
     resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
-    return _THINK_RE.sub("", str(resp.content or "")).strip()
+    text = _THINK_RE.sub("", str(resp.content or "")).strip()
+    tracing.log_generation("local_chat", settings.LOCAL_MODEL, user, text)
+    return text
 
 
 def cloud_chat(
@@ -98,7 +101,9 @@ def cloud_chat(
             raise RuntimeError(f"Ollama Cloud failed (HTTP {resp.status_code}): {detail}")
         data = resp.json()
     content = (data.get("message") or {}).get("content") or ""
-    return _THINK_RE.sub("", str(content)).strip()
+    text = _THINK_RE.sub("", str(content)).strip()
+    tracing.log_generation("cloud_chat", settings.OLLAMA_CLOUD_MODEL, user, text)
+    return text
 
 
 def extract_json(text: str) -> dict:

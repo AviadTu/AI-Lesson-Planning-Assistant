@@ -14,3 +14,8 @@ langchain-ollama              # LOCAL model (classification / missing-info)
 
 # ── Cloud generation transport ───────────────────────────────────────
 httpx                         # direct Ollama Cloud API (OS trust store + Bearer)
+
+# ── Optional observability (feature-flagged; import is lazy) ─────────
+# Install only if you enable Langfuse tracing (LANGFUSE_ENABLED=true). The app
+# runs without it — tracing is a strict no-op when the SDK/keys are absent.
+# langfuse
