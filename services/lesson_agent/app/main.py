@@ -15,7 +15,7 @@ import logging
 from fastapi import FastAPI
 
 from app.config import settings
-from app.graph import run_turn
+from app.graph import get_session_state, run_turn
 from app.schemas import TurnRequest, TurnResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +26,19 @@ app = FastAPI(title="Homori Lesson Agent", version="0.1.0")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "lesson_agent"}
+
+
+@app.get("/lesson/{session_id}")
+def lesson(session_id: str) -> dict:
+    """Return the session's current lesson + stage (for PDF/email orchestration)."""
+    state = get_session_state(session_id)
+    lesson = state.get("lesson")
+    return {
+        "session_id": session_id,
+        "stage": state.get("stage"),
+        "lesson": lesson,
+        "has_lesson": bool(lesson),
+    }
 
 
 @app.post("/turn", response_model=TurnResponse)

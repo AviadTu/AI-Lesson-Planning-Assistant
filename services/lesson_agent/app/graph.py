@@ -301,3 +301,11 @@ def run_turn(session_id: str, message: str, sources: list[dict]) -> dict:
         config,
     )
     return dict(graph.get_state(config).values)
+
+
+def get_session_state(session_id: str) -> dict:
+    """Read the persisted conversational state for a session (no new turn)."""
+    graph = get_graph()
+    config = {"configurable": {"thread_id": session_id}}
+    snap = graph.get_state(config)
+    return dict(snap.values) if snap and snap.values else {}

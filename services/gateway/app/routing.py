@@ -74,6 +74,20 @@ def is_affirmative(message: str) -> bool:
     return bool(_AFFIRM_RE.search(message or ""))
 
 
+# PDF / download / email request (checked only within an active lesson session,
+# to route to the "Lesson PDF and Email" workflow instead of a normal turn).
+_EXPORT_RE = re.compile(
+    r"\bpdf\b|פי\s?די\s?אף"
+    r"|תוריד|להוריד|הורד[הת]|להורדה"
+    r"|למייל|במייל|אימייל|\bemail\b|דוא[\"׳']?ל|שלח.{0,12}מייל",
+    re.IGNORECASE,
+)
+
+
+def is_export_request(message: str) -> bool:
+    return bool(_EXPORT_RE.search(message or ""))
+
+
 def _looks_like_question(message: str) -> bool:
     return bool(_QUESTION_RE.search((message or "").strip()))
 

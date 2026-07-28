@@ -72,10 +72,14 @@ async def _handle_lesson(session_id: str, user_message: str, mode: dict) -> dict
     set_lesson_mode(session_id, active=True, pending_offer=False, pending_topic="")
     save_message(session_id, role="user", content=user_message)
 
+    # A PDF/download/email request routes to the "Lesson PDF and Email" workflow;
+    # everything else is a normal lesson-planning turn (Lesson Orchestrator).
+    payload = {"session_id": session_id, "message": forward_message}
     try:
-        result = await n8n_client.trigger_lesson_creation(
-            {"session_id": session_id, "message": forward_message}
-        )
+        if routing.is_export_request(user_message):
+            result = await n8n_client.trigger_export(payload)
+        else:
+            result = await n8n_client.trigger_lesson_creation(payload)
     except n8n_client.WorkflowNotConfigured:
         answer = (
             "מנגנון בניית מערכי השיעור עדיין אינו מחובר (n8n). "

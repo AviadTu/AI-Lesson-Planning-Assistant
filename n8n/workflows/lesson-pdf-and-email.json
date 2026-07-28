@@ -1,0 +1,139 @@
+{
+  "name": "Lesson PDF and Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lesson-export",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4dc6d31c-b219-4d3c-9578-2e6ae6043221",
+      "name": "Webhook In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "e8df2e48-580c-43b4-af21-598eaa4bb1d0"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://host.docker.internal:8004/lesson/{{ $json.body.session_id }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "697e1f11-b439-4311-a622-23ecd9a51334",
+      "name": "Get Lesson",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/internal/pdf",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"lesson\": $json.lesson, \"session_id\": $json.session_id } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "744af543-e648-44fe-825b-2ca2038b5c31",
+      "name": "Render PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const gl = $('Get Lesson').first().json || {};\nconst rp = $input.first().json || {};\nconst msg = (($('Webhook In').first().json.body || {}).message) || '';\nconst wantEmail = /\\u05de\\u05d9\\u05d9\\u05dc|\\u05d0\\u05d9\\u05de\\u05d9\\u05d9\\u05dc|email/i.test(msg);\nif (!gl.has_lesson) {\n  return [{ json: { answer: '\\u05e2\\u05d3\\u05d9\\u05d9\\u05df \\u05d0\\u05d9\\u05df \\u05de\\u05e2\\u05e8\\u05da \\u05e9\\u05d9\\u05e2\\u05d5\\u05e8 \\u05de\\u05d5\\u05db\\u05df \\u05dc\\u05d4\\u05d5\\u05e8\\u05d3\\u05d4. \\u05e0\\u05e9\\u05dc\\u05d9\\u05dd \\u05d0\\u05d5\\u05ea\\u05d5 \\u05e7\\u05d5\\u05d3\\u05dd, \\u05d5\\u05d0\\u05d6 \\u05d0\\u05e4\\u05e9\\u05e8 \\u05dc\\u05d4\\u05e4\\u05d9\\u05e7 PDF.' } }];\n}\nif (rp && rp.download_url) {\n  let ans = '\\u05de\\u05e2\\u05e8\\u05da \\u05d4\\u05e9\\u05d9\\u05e2\\u05d5\\u05e8 \\u05de\\u05d5\\u05db\\u05df! [\\u05dc\\u05d4\\u05d5\\u05e8\\u05d3\\u05ea \\u05d4-PDF \\ud83d\\udcc4](' + rp.download_url + ')';\n  if (wantEmail) ans += '\\n\\n(\\u05e9\\u05dc\\u05d9\\u05d7\\u05d4 \\u05d1\\u05de\\u05d9\\u05d9\\u05dc \\u05d0\\u05d9\\u05e0\\u05d4 \\u05de\\u05d5\\u05d2\\u05d3\\u05e8\\u05ea \\u05db\\u05e8\\u05d2\\u05e2 \\u2014 \\u05d9\\u05e9 \\u05dc\\u05d4\\u05d2\\u05d3\\u05d9\\u05e8 SMTP \\u05d1-n8n.)';\n  return [{ json: { answer: ans, download_url: rp.download_url } }];\n}\nreturn [{ json: { answer: '\\u05d0\\u05d9\\u05e8\\u05e2\\u05d4 \\u05ea\\u05e7\\u05dc\\u05d4 \\u05d1\\u05d4\\u05e4\\u05e7\\u05ea \\u05d4-PDF. \\u05e0\\u05e1\\u05d4/\\u05d9 \\u05e9\\u05d5\\u05d1.' } }];"
+      },
+      "id": "0ff8b57a-19e0-4ca5-855e-51b016eb4c5f",
+      "name": "Build Answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"answer\": $json.answer } }}",
+        "options": {}
+      },
+      "id": "2970bd45-7c88-46cc-bfef-94ca4747db71",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook In": {
+      "main": [
+        [
+          {
+            "node": "Get Lesson",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lesson": {
+      "main": [
+        [
+          {
+            "node": "Render PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render PDF": {
+      "main": [
+        [
+          {
+            "node": "Build Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Answer": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
