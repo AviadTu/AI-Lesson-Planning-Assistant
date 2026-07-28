@@ -3,13 +3,188 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "67e278b4-1d91-446f-945c-89c4aee259a4",
+      "id": "776e7737-2ad9-496f-998f-58d692888726",
       "name": "Source Input",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const t = $json; const message = t.message || ''; const items = [];\nitems.push({ json: { source_type:'rag', message, session_id: t.session_id } });\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nfor (const url of urls) {\n  const isYt = /youtube\\.com|youtu\\.be/i.test(url);\n  if (isYt) { const vid = (url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/)||[])[1] || '';\n    items.push({ json: { source_type:'youtube', url, vid, page_url:'https://www.youtube.com/watch?v='+vid, message } }); }\n  else items.push({ json: { source_type:'article', url, message } });\n}\nlet ppx=''; try { ppx = $env.PERPLEXITY_API_KEY || ''; } catch(e){}\nif (ppx) items.push({ json: { source_type:'web', message } });\nreturn items;"
+      },
+      "id": "5dd36734-5378-4ceb-81a4-b0957e5d5728",
+      "name": "Detect Source Types",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
         220,
-        300
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "015533be-adbf-47c6-b708-986e59b3f3c8",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "rag",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "rag"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "6d6dec95-addf-4809-aab1-d9d5a54c8334",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "article",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "article"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "15f71bf9-eadf-4d56-a66f-f1145b38f4e7",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "youtube",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "youtube"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "10ec1190-275f-4a23-bc55-f290a288a011",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "web",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "web"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "f738f103-8c71-41c4-9bae-553b9c4eda60",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "document"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "73b75a7a-c933-47f6-ab05-bc47b61c8d5b",
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "97f5fd4c-7a6a-4b77-913e-b119ebe3d67c",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        460,
+        480
       ]
     },
     {
@@ -23,12 +198,49 @@
           "timeout": 120000
         }
       },
-      "id": "c0e431a4-6a17-4dab-a222-5c75a851c1cc",
-      "name": "RAG Retrieve",
+      "id": "4f09db36-3c46-4f24-86d8-86477f96dfbe",
+      "name": "RAG Retrieval",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        460,
+        700,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const chunks = ($json.chunks) || [];\n// Always emit >=1 item so the aggregate always runs (empty KB => marker,\n// filtered out in Return Unified Context).\nif (!chunks.length) return [{ json: { type:'_marker', title:'', text:'', url:null, citation:'', dkey:'_marker' } }];\nreturn chunks.map(c => ({ json: { type:'rag', title: c.original_filename || 'knowledge base',\n  text: c.text || '', url: null, citation: c.original_filename || 'RAG',\n  dkey: 'rag||' + String(c.text||'').slice(0,80) } }));"
+      },
+      "id": "5b3c4fc4-e836-448c-8b31-8ae5317e7ff6",
+      "name": "Normalize RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "b43f25ea-bfad-438f-b300-7abb89e0b548",
+      "name": "Article URL Extraction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
         300
       ],
       "onError": "continueRegularOutput"
@@ -36,15 +248,234 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "\nconst trig = $('Source Input').first().json || {};\nconst message = trig.message || '';\nconst ragChunks = ($json && $json.chunks) ? $json.chunks : [];\nconst sources = [];\nconst warnings = [];\nconst seen = new Set();\n\nfunction add(s) {\n  if (!s || !s.text) return;\n  const key = (s.type||'') + '|' + (s.url||'') + '|' + String(s.text).slice(0,80);\n  if (seen.has(key)) return;\n  seen.add(key);\n  sources.push(s);\n}\nfunction strip(html) {\n  return String(html)\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\n\n// 1) RAG knowledge-base chunks\nfor (const c of ragChunks) {\n  add({ type: 'rag', title: c.original_filename || 'knowledge base',\n        text: c.text, url: null, citation: c.original_filename || 'RAG' });\n}\n\n// 2) URLs in the message: article extraction / YouTube transcript\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nfor (const url of urls) {\n  const isYt = /youtube\\.com|youtu\\.be/i.test(url);\n  try {\n    if (isYt) {\n      const vid = (url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/) || [])[1];\n      let got = false;\n      if (vid) {\n        const page = await this.helpers.httpRequest({ method: 'GET', url: 'https://www.youtube.com/watch?v=' + vid, timeout: 15000 });\n        const m = String(page).match(/\"captionTracks\":(\\[.*?\\])/);\n        if (m) {\n          const tracks = JSON.parse(m[1].replace(/\\\\u0026/g, '&'));\n          if (tracks.length && tracks[0].baseUrl) {\n            const xml = await this.helpers.httpRequest({ method: 'GET', url: tracks[0].baseUrl, timeout: 15000 });\n            const text = strip(xml).slice(0, 4000);\n            if (text) { add({ type: 'youtube', title: 'תמלול סרטון YouTube', text, url, citation: url }); got = true; }\n          }\n        }\n      }\n      if (!got) warnings.push('לא נמצא תמלול זמין לסרטון: ' + url);\n    } else {\n      const html = await this.helpers.httpRequest({ method: 'GET', url, timeout: 15000 });\n      const text = strip(html).slice(0, 4000);\n      if (text) add({ type: 'url', title: url, text, url, citation: url });\n      else warnings.push('לא הצלחתי לחלץ טקסט מהכתובת: ' + url);\n    }\n  } catch (e) {\n    warnings.push('מקור נכשל ודילגתי עליו: ' + url);\n  }\n}\n\n// 3) Perplexity web search — feature-flagged (only if a key is present in n8n env)\nlet ppxKey = '';\ntry { ppxKey = $env.PERPLEXITY_API_KEY || ''; } catch (e) { ppxKey = ''; }\nif (ppxKey) {\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST', url: 'https://api.perplexity.ai/chat/completions',\n      headers: { Authorization: 'Bearer ' + ppxKey }, json: true, timeout: 30000,\n      body: { model: 'sonar', messages: [{ role: 'user', content: message }] },\n    });\n    const c = res && res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content;\n    if (c) add({ type: 'web', title: 'חיפוש רשת (Perplexity)', text: c, url: null, citation: 'Perplexity' });\n  } catch (e) { warnings.push('חיפוש הרשת נכשל'); }\n}\n\nreturn [{ json: { sources, warnings, count: sources.length } }];\n"
+        "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\nconst url = $('Detect Source Types').item.json.url;\nconst text = strip($json.data ?? $json.body ?? '').slice(0,4000);\nreturn [{ json: { type:'url', title:url, text, url, citation:url, dkey:'url|'+url+'|'+text.slice(0,80) } }];"
       },
-      "id": "f70565c1-fc21-409a-a09b-45beaebddde9",
-      "name": "Collect Sources",
+      "id": "e5e5bf17-5cd4-49cf-a526-f188bee4cab3",
+      "name": "Normalize Article",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        940,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.page_url }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "c554d92f-db98-4bd0-80e6-b3a569470c8a",
+      "name": "YouTube Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const m = String($json.data||'').match(/\"captionTracks\":(\\[.*?\\])/);\nlet cap=''; if(m){ try{ const t=JSON.parse(m[1].replace(/\\\\u0026/g,'&')); if(t.length&&t[0].baseUrl) cap=t[0].baseUrl; }catch(e){} }\nconst src = $('Detect Source Types').item.json;\nreturn [{ json: { cap_url: cap, url: src.url } }];"
+      },
+      "id": "2a32654d-5f66-4045-8409-cfd91ebc6288",
+      "name": "Extract Caption URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cap_url }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "288ff54f-9a7e-4d70-94ef-f768322c982f",
+      "name": "Fetch Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\nconst url = $('Extract Caption URL').item.json.url;\nconst text = strip($json.data ?? '').slice(0,4000);\nreturn [{ json: { type:'youtube', title:'\\u05ea\\u05de\\u05dc\\u05d5\\u05dc \\u05e1\\u05e8\\u05d8\\u05d5\\u05df YouTube', text, url, citation:url, dkey:'youtube|'+url+'|'+text.slice(0,80) } }];"
+      },
+      "id": "2f48ad29-f707-4be5-81c1-a8222ccf821c",
+      "name": "Normalize YouTube",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"model\": \"sonar\", \"messages\": [ { \"role\": \"user\", \"content\": $json.message } ] } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "493f2c4b-43bf-4883-98e4-9690fde2164d",
+      "name": "Perplexity Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        660
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = ($json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content) || '';\nreturn [{ json: { type:'web', title:'\\u05d7\\u05d9\\u05e4\\u05d5\\u05e9 \\u05e8\\u05e9\\u05ea (Perplexity)', text:c, url:null, citation:'Perplexity', dkey:'web||'+String(c).slice(0,80) } }];"
+      },
+      "id": "6880aab7-ab3e-4db7-91fb-47cc86b4c741",
+      "name": "Normalize Web",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        660
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0e88522b-092e-4109-a437-05b061a6aae5",
+      "name": "Document Extraction",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        820
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0fa6dde6-853b-4df0-8de2-ee0f6217ee60",
+      "name": "Image Analysis",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 6
+      },
+      "id": "ed47bbab-3ef0-4ef8-af82-a6fd3368d02c",
+      "name": "Merge Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1560,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeDuplicateInputItems",
+        "compare": "selectedFields",
+        "fieldsToCompare": "dkey",
+        "options": {}
+      },
+      "id": "1f8bcc85-86ba-4a9c-ad9d-66b47db29033",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1f30ead-c411-4ffd-ad54-6e023114dc00",
+              "name": "citation",
+              "value": "={{ $json.citation || $json.title || $json.url || 'source' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "20066ed5-f4a3-4256-8961-84e521a36e41",
+      "name": "Preserve Citations",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1960,
+        480
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1493ca1f-ebe6-49b5-b0b8-a083d0e6d4b9",
+      "name": "Partial Failure Handling",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\n// Partial-failure handling: drop the empty-KB marker and any empty/failed source.\nconst sources = items.map(i => i.json)\n  .filter(s => s && s.type && s.type !== '_marker' && s.text)\n  .map(s => ({ type:s.type, title:s.title, text:s.text, url:(s.url ?? null), citation:s.citation }));\nreturn [{ json: { sources, warnings: [], count: sources.length } }];"
+      },
+      "id": "da343532-be8c-43b7-8519-8b070301cac5",
+      "name": "Return Unified Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        480
       ]
     }
   ],
@@ -53,18 +484,240 @@
       "main": [
         [
           {
-            "node": "RAG Retrieve",
+            "node": "Detect Source Types",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "RAG Retrieve": {
+    "Detect Source Types": {
       "main": [
         [
           {
-            "node": "Collect Sources",
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "RAG Retrieval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Article URL Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "YouTube Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Document Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Image Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Retrieval": {
+      "main": [
+        [
+          {
+            "node": "Normalize RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize RAG": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Article URL Extraction": {
+      "main": [
+        [
+          {
+            "node": "Normalize Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Article": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "YouTube Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Caption URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Caption URL": {
+      "main": [
+        [
+          {
+            "node": "Fetch Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Transcript": {
+      "main": [
+        [
+          {
+            "node": "Normalize YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize YouTube": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Perplexity Search": {
+      "main": [
+        [
+          {
+            "node": "Normalize Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Web": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Document Extraction": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Image Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Merge Sources": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Preserve Citations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Citations": {
+      "main": [
+        [
+          {
+            "node": "Partial Failure Handling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Partial Failure Handling": {
+      "main": [
+        [
+          {
+            "node": "Return Unified Context",
             "type": "main",
             "index": 0
           }
