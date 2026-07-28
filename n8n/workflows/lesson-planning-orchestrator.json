@@ -8,49 +8,120 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "88692ebe-288b-450b-b00b-b9fa51b52c5f",
+      "id": "ff594c99-6873-42c9-b6e9-50616e301f0d",
       "name": "Webhook In",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        220,
+        180,
         300
       ],
-      "webhookId": "8be17e38-dcc9-4cb1-8ff0-c2a032f06fd1"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:8001/retrieve",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { \"query\": $json.body.message, \"top_k\": 4 } }}",
-        "options": {
-          "timeout": 120000
-        }
-      },
-      "id": "7acf8567-324f-44fb-a46f-f0e246205a62",
-      "name": "RAG Retrieve",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        440,
-        300
-      ],
-      "onError": "continueRegularOutput"
+      "webhookId": "4e2b7db2-91ad-4d72-af95-fc13da45e614"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const wh = $('Webhook In').first().json.body || {};\nconst chunks = ($input.first().json.chunks) || [];\nconst sources = chunks.map(c => ({\n  type: 'rag', title: c.original_filename,\n  text: c.text, citation: c.original_filename,\n}));\nreturn [{ json: { session_id: wh.session_id, message: wh.message, sources } }];"
+        "jsCode": "const b = $json.body || {};\nconst session_id = String(b.session_id || '').trim();\nconst message = String(b.message || '').trim();\nreturn [{ json: { session_id, message, valid: !!(session_id && message) } }];"
       },
-      "id": "f1e520c7-66e1-48c9-97ca-0c1562afab21",
-      "name": "Build Request",
+      "id": "21848e83-bf9d-4315-be8d-9fa7d90cdeaf",
+      "name": "Intake & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
+        380,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "9f183ebd-d632-4c54-90e3-768ab5c7b1a6",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "3a0fbfab-ebf7-4179-9631-c17e9a34606f",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"answer\": \"בקשה לא תקינה: חסר מזהה שיחה או הודעה.\" } }}",
+        "options": {}
+      },
+      "id": "938f3864-5216-4c2c-949e-42d6b2014fc1",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        780,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const message = $json.message;\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nconst youtube = urls.filter(u => /youtube\\.com|youtu\\.be/i.test(u));\nconst articles = urls.filter(u => !/youtube\\.com|youtu\\.be/i.test(u));\nreturn [{ json: { session_id: $json.session_id, message,\n  detected: { article_urls: articles, youtube_urls: youtube, rag: true, url_count: urls.length } } }];"
+      },
+      "id": "a3be3294-fd4b-4a47-b7ad-57ccc64e4024",
+      "name": "Detect Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "yulzQcUFjXD4fVg7",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "f47f8156-d97f-476b-933b-0352a5c60ef6",
+      "name": "Source Processing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const sp = $json || {};\nconst base = $('Detect Sources').first().json;\nreturn [{ json: { session_id: base.session_id, message: base.message,\n  sources: sp.sources || [], warnings: sp.warnings || [] } }];"
+      },
+      "id": "4b0f72aa-86a4-493f-8ab4-831192679282",
+      "name": "Build Agent Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        200
       ]
     },
     {
@@ -64,28 +135,42 @@
           "timeout": 300000
         }
       },
-      "id": "1af48bcf-27e9-483e-8cbc-ba1171d41cae",
+      "id": "bbd3528b-27fc-487d-92f4-f8cc941815c6",
       "name": "Lesson Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
-        300
+        1380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r = $json || {};\nlet answer = r.reply || '';\nconst warnings = ($('Build Agent Request').first().json.warnings) || [];\nif (r.stage === 'final' && r.lesson) {\n  const need = ['opening','central_idea','summary'];\n  const missing = need.filter(k => !r.lesson[k]);\n  if (missing.length) answer += '\\n\\n(הערה: חלק מהמקטעים חסרים — ניתן לבקש השלמה.)';\n}\nif (warnings.length) answer += '\\n\\n' + warnings.join('\\n');\nreturn [{ json: { answer, stage: r.stage || 'intake' } }];"
+      },
+      "id": "fd2edb44-165b-43ad-b4f5-a5ab23e64fe4",
+      "name": "Validate Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        200
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"answer\": $json.reply, \"stage\": $json.stage } }}",
+        "responseBody": "={{ { \"answer\": $json.answer, \"stage\": $json.stage } }}",
         "options": {}
       },
-      "id": "38504e9e-e9c4-442d-9a98-6153dae14057",
+      "id": "4e8abdbe-74eb-43c1-af22-d651b873de9f",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1100,
-        300
+        1780,
+        200
       ]
     }
   ],
@@ -94,25 +179,65 @@
       "main": [
         [
           {
-            "node": "RAG Retrieve",
+            "node": "Intake & Validate",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "RAG Retrieve": {
+    "Intake & Validate": {
       "main": [
         [
           {
-            "node": "Build Request",
+            "node": "Is Valid?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Request": {
+    "Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "Detect Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Sources": {
+      "main": [
+        [
+          {
+            "node": "Source Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source Processing": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Request": {
       "main": [
         [
           {
@@ -124,6 +249,17 @@
       ]
     },
     "Lesson Agent": {
+      "main": [
+        [
+          {
+            "node": "Validate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Response": {
       "main": [
         [
           {

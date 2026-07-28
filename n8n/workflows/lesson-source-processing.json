@@ -1,0 +1,78 @@
+{
+  "name": "Lesson Source Processing",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "67e278b4-1d91-446f-945c-89c4aee259a4",
+      "name": "Source Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8001/retrieve",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"query\": $json.message, \"top_k\": 4 } }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "c0e431a4-6a17-4dab-a222-5c75a851c1cc",
+      "name": "RAG Retrieve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst trig = $('Source Input').first().json || {};\nconst message = trig.message || '';\nconst ragChunks = ($json && $json.chunks) ? $json.chunks : [];\nconst sources = [];\nconst warnings = [];\nconst seen = new Set();\n\nfunction add(s) {\n  if (!s || !s.text) return;\n  const key = (s.type||'') + '|' + (s.url||'') + '|' + String(s.text).slice(0,80);\n  if (seen.has(key)) return;\n  seen.add(key);\n  sources.push(s);\n}\nfunction strip(html) {\n  return String(html)\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\n\n// 1) RAG knowledge-base chunks\nfor (const c of ragChunks) {\n  add({ type: 'rag', title: c.original_filename || 'knowledge base',\n        text: c.text, url: null, citation: c.original_filename || 'RAG' });\n}\n\n// 2) URLs in the message: article extraction / YouTube transcript\nconst urls = message.match(/https?:\\/\\/[^\\s)]+/g) || [];\nfor (const url of urls) {\n  const isYt = /youtube\\.com|youtu\\.be/i.test(url);\n  try {\n    if (isYt) {\n      const vid = (url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/) || [])[1];\n      let got = false;\n      if (vid) {\n        const page = await this.helpers.httpRequest({ method: 'GET', url: 'https://www.youtube.com/watch?v=' + vid, timeout: 15000 });\n        const m = String(page).match(/\"captionTracks\":(\\[.*?\\])/);\n        if (m) {\n          const tracks = JSON.parse(m[1].replace(/\\\\u0026/g, '&'));\n          if (tracks.length && tracks[0].baseUrl) {\n            const xml = await this.helpers.httpRequest({ method: 'GET', url: tracks[0].baseUrl, timeout: 15000 });\n            const text = strip(xml).slice(0, 4000);\n            if (text) { add({ type: 'youtube', title: 'תמלול סרטון YouTube', text, url, citation: url }); got = true; }\n          }\n        }\n      }\n      if (!got) warnings.push('לא נמצא תמלול זמין לסרטון: ' + url);\n    } else {\n      const html = await this.helpers.httpRequest({ method: 'GET', url, timeout: 15000 });\n      const text = strip(html).slice(0, 4000);\n      if (text) add({ type: 'url', title: url, text, url, citation: url });\n      else warnings.push('לא הצלחתי לחלץ טקסט מהכתובת: ' + url);\n    }\n  } catch (e) {\n    warnings.push('מקור נכשל ודילגתי עליו: ' + url);\n  }\n}\n\n// 3) Perplexity web search — feature-flagged (only if a key is present in n8n env)\nlet ppxKey = '';\ntry { ppxKey = $env.PERPLEXITY_API_KEY || ''; } catch (e) { ppxKey = ''; }\nif (ppxKey) {\n  try {\n    const res = await this.helpers.httpRequest({\n      method: 'POST', url: 'https://api.perplexity.ai/chat/completions',\n      headers: { Authorization: 'Bearer ' + ppxKey }, json: true, timeout: 30000,\n      body: { model: 'sonar', messages: [{ role: 'user', content: message }] },\n    });\n    const c = res && res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content;\n    if (c) add({ type: 'web', title: 'חיפוש רשת (Perplexity)', text: c, url: null, citation: 'Perplexity' });\n  } catch (e) { warnings.push('חיפוש הרשת נכשל'); }\n}\n\nreturn [{ json: { sources, warnings, count: sources.length } }];\n"
+      },
+      "id": "f70565c1-fc21-409a-a09b-45beaebddde9",
+      "name": "Collect Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Source Input": {
+      "main": [
+        [
+          {
+            "node": "RAG Retrieve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Retrieve": {
+      "main": [
+        [
+          {
+            "node": "Collect Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
