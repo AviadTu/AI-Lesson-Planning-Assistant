@@ -7,8 +7,8 @@ preserve the IDs below** (the orchestrator references the sub-workflows by ID).
 
 | Workflow | ID | Nodes | Role |
 |---|---|---|---|
-| Lesson Planning Orchestrator | `UEfy0HlFG540p1N1` | 11 | main pipeline (webhook → validate → detect → source processing → agent → respond) |
-| Lesson Source Processing | `yulzQcUFjXD4fVg7` | 31 | 6 source branches → unified `{sources, warnings, failed_sources, count}` |
+| Lesson Planning Orchestrator | `UEfy0HlFG540p1N1` | 10 | main pipeline (webhook → validate → source processing → agent → respond) |
+| Lesson Source Processing | `yulzQcUFjXD4fVg7` | 30 | 6 source branches → unified `{sources, warnings, failed_sources, count}` |
 | Lesson PDF and Email | `b8eVEHPDWsKEGztX` | 8 | render PDF (Gateway) → optional email |
 
 ## Source branches (Lesson Source Processing)
@@ -20,25 +20,26 @@ Citations → Return Unified Context`:
 1. **RAG** — HTTP Request → RAG `/retrieve` (independent service) → Normalize.
 2. **Article URL** — Fetch Article (HTTP) → Extract HTML Content (native **HTML**) → Normalize.
 3. **YouTube** — Extract Video ID → YouTube Page (HTTP) → Extract Caption URL → Retrieve Transcript (HTTP) → Normalize. *(HTTP transcript: no native captions node.)*
-4. **Perplexity** — native **Perplexity** node *(disabled until credentials added)*.
+4. **Perplexity** — native **Perplexity** node (v2, `chat`→`complete`, `sonar`), connected to the **Perplexity account** credential → Normalize Web (reads the simplified `message` string + `citations`).
 5. **Document** — To Binary (native **Convert to File**) → Detect File Type → Switch → **Extract From File** (PDF/TXT, native) / Gateway `/internal/extract` (DOCX) → Normalize.
-6. **Image** — Image To Binary → **Analyze Image** (native **OpenAI**) *(disabled until credentials added)* → Normalize.
+6. **Image** — Image To Binary → **Analyze Image** (native **OpenAI**), connected to the **OpenAI account** credential → Normalize.
 
 Every branch is partial-failure tolerant (`onError: continueRegularOutput`);
 failures are recorded in `failed_sources` + `warnings` and the workflow always
 returns exactly one item.
 
-## Credentials to add (in n8n → Credentials)
+## Credentials
 
-| Credential type | Used by | Needed for |
+| Credential | Used by | Status |
 |---|---|---|
-| `perplexityApi` | Perplexity Search node | web-search branch (then enable the node) |
-| `openAiApi` | Analyze Image node | image analysis (then enable the node) |
-| SMTP | Send Email node (PDF/Email wf) | emailing the PDF (then enable the node) |
+| **Perplexity account** (`perplexityApi`) | Perplexity Search node | connected & enabled ✓ |
+| **OpenAI account** (`openAiApi`) | Analyze Image node | connected & enabled ✓ |
+| SMTP | Send Email node (PDF/Email wf) | **not configured** — node stays disabled; email is optional (the PDF download works without it) |
 
-The Perplexity, Analyze Image and Send Email nodes are **disabled** (credential-
-gated) so the workflows publish without secrets. Add the credential, assign it,
-and toggle the node on — no redesign needed.
+Perplexity and OpenAI use the operator's already-authenticated credentials. The
+Send Email node is the only credential-gated node still **disabled**: add an SMTP
+credential (or switch it to the native Gmail node, since a Gmail credential
+exists) and toggle it on. No redesign needed.
 
 ## Environment variables
 
@@ -46,9 +47,12 @@ and toggle the node on — no redesign needed.
 
 | Var | Effect |
 |---|---|
-| `PERPLEXITY_API_KEY` | feature flag: Detect Source Types only emits a `web` item when set |
-| `IMAGE_PROVIDER` | feature flag: image attachments processed only when set (e.g. `openai`), else recorded as a failed source with a warning |
-| `SMTP_FROM` | from-address for the Send Email node |
+| `SMTP_FROM` | from-address for the Send Email node (only if email is enabled) |
+
+The web-search branch is gated by the request itself (`want_web` / a "search the
+web" keyword) — the Perplexity credential handles auth — and image attachments
+are processed whenever an image is uploaded. No `PERPLEXITY_API_KEY` /
+`IMAGE_PROVIDER` env flags are needed.
 
 **Gateway** (`services/gateway/.env`): `N8N_LESSON_CREATION_WEBHOOK_URL`,
 `N8N_EXPORT_WEBHOOK_URL`, `LOCAL_OLLAMA_BASE_URL`, `INTENT_MODEL`,
@@ -56,8 +60,7 @@ and toggle the node on — no redesign needed.
 
 **lesson-agent** (`services/lesson_agent/.env`): `OLLAMA_API_KEY`,
 `OLLAMA_CLOUD_MODEL`, `LOCAL_MODEL`, and optional `LANGFUSE_ENABLED` /
-`LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST`,
-`PERPLEXITY_API_KEY`.
+`LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST`.
 
 Missing optional credentials/flags never break other branches — the branch
 detects the absence, emits a warning, and the workflow continues.

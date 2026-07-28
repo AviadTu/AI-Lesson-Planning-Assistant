@@ -8,7 +8,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "fb8f3bc2-a8a4-4a9f-a419-61c39878062f",
+      "id": "e104ea89-0442-462a-a78a-60c4e35fadb7",
       "name": "Webhook In",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -16,14 +16,14 @@
         160,
         300
       ],
-      "webhookId": "e1d7605d-5ad4-4255-8c42-b0d16f68709e"
+      "webhookId": "85291812-bf7a-41b3-9370-884d272210d0"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "const b=$json.body||{};\nconst session_id=String(b.session_id||'').trim();\nconst message=String(b.message||'').trim();\nreturn [{json:{session_id,message,want_web:!!b.want_web,attachments:Array.isArray(b.attachments)?b.attachments:[],valid:!!(session_id&&message)}}];"
       },
-      "id": "62df7c8b-b818-4b28-ba69-18b7cd58c0c8",
+      "id": "7c2d73f3-08f4-4194-8376-e5cb96b25d0b",
       "name": "Intake & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -42,7 +42,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "a56355c2-e99e-411d-a489-dd761120ee47",
+              "id": "55ac1de5-b453-4187-a7f6-4fc25c698a20",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
               "operator": {
@@ -54,7 +54,7 @@
           ]
         }
       },
-      "id": "0ef38423-d722-48f1-8ca6-1f4abd34d006",
+      "id": "f81124b6-2ac0-42da-bfb8-ad242fa5f1b0",
       "name": "Is Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -69,27 +69,13 @@
         "responseBody": "={{ { \"answer\": \"בקשה לא תקינה: חסר מזהה שיחה או הודעה.\" } }}",
         "options": {}
       },
-      "id": "9a1cd945-1f2b-4e96-91e3-568339bac8e0",
+      "id": "504a5f6b-d0af-4dac-ac4c-52484a0cc34f",
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
         780,
         460
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const message=$json.message; const urls=message.match(/https?:\\/\\/[^\\s)]+/g)||[];\nconst youtube=urls.filter(u=>/youtube\\.com|youtu\\.be/i.test(u));\nconst articles=urls.filter(u=>!/youtube\\.com|youtu\\.be/i.test(u));\nreturn [{json:{session_id:$json.session_id,message,want_web:$json.want_web,attachments:$json.attachments,\n  detected:{article_urls:articles,youtube_urls:youtube,rag:true,attachment_count:($json.attachments||[]).length}}}];"
-      },
-      "id": "8598ba28-0a68-4870-a57a-3cdf560e8a39",
-      "name": "Detect Sources",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        780,
-        200
       ]
     },
     {
@@ -101,21 +87,21 @@
         },
         "options": {}
       },
-      "id": "f3494a86-6df2-45d4-a3f3-dc53c1e27462",
+      "id": "bf7c0b5f-fd50-4861-adec-cbaa6dd40a5c",
       "name": "Execute Lesson Source Processing",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        980,
+        780,
         200
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const sp=$json||{}; const base=$('Detect Sources').first().json;\nconst sources=sp.sources||[]; const warnings=sp.warnings||[]; const failed=sp.failed_sources||[];\nreturn [{json:{session_id:base.session_id,message:base.message,sources,warnings,failed_sources:failed,\n  source_count:sources.length}}];"
+        "jsCode": "const sp=$json||{}; const base=$('Intake & Validate').first().json;\nconst sources=sp.sources||[]; const warnings=sp.warnings||[]; const failed=sp.failed_sources||[];\nreturn [{json:{session_id:base.session_id,message:base.message,sources,warnings,failed_sources:failed,\n  source_count:sources.length}}];"
       },
-      "id": "124b68e6-23f1-47ba-a038-e57866369678",
+      "id": "3b29ff2c-143d-4074-8a36-85a9b2fe14af",
       "name": "Inspect Source Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -129,7 +115,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "return [{json:{session_id:$json.session_id,message:$json.message,sources:$json.sources||[],warnings:$json.warnings||[]}}];"
       },
-      "id": "d5651d08-98c2-4106-8e11-101af3831e3a",
+      "id": "3c916aed-babb-4f06-9839-586bec36e5ce",
       "name": "Build Agent Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -149,7 +135,7 @@
           "timeout": 300000
         }
       },
-      "id": "e7feb9b3-2a4f-465c-95dc-b3713a42af81",
+      "id": "9f374783-8781-40a2-934d-96eea755e554",
       "name": "Lesson Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -163,7 +149,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const r=$json||{}; let answer=r.reply||'';\nconst warnings=($('Build Agent Request').first().json.warnings)||[];\nif(r.stage==='final'&&r.lesson){ const need=['opening','central_idea','summary']; const miss=need.filter(k=>!r.lesson[k]);\n  if(miss.length) answer+='\\n\\n(הערה: חלק מהמקטעים חסרים — ניתן לבקש השלמה.)'; }\nif(warnings.length) answer+='\\n\\n'+warnings.join('\\n');\nreturn [{json:{answer,stage:r.stage||'intake'}}];"
       },
-      "id": "1af66052-2b7b-48ed-99f2-3bd3fb2df6f1",
+      "id": "a63ea91d-3b77-433a-a73c-2da937c0583d",
       "name": "Validate Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -178,7 +164,7 @@
         "responseBody": "={{ { \"answer\": $json.answer, \"stage\": $json.stage } }}",
         "options": {}
       },
-      "id": "edbe6d82-a1c7-40fb-89d8-6ed95cae307e",
+      "id": "5ba6df3e-fd58-47c9-9630-4f4465504d6c",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -215,7 +201,7 @@
       "main": [
         [
           {
-            "node": "Detect Sources",
+            "node": "Execute Lesson Source Processing",
             "type": "main",
             "index": 0
           }
@@ -223,17 +209,6 @@
         [
           {
             "node": "Respond Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Detect Sources": {
-      "main": [
-        [
-          {
-            "node": "Execute Lesson Source Processing",
             "type": "main",
             "index": 0
           }
@@ -300,5 +275,8 @@
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": false
+  },
+  "meta": {
+    "id": "UEfy0HlFG540p1N1"
   }
 }
