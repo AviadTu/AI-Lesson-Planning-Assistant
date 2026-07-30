@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>הַמֹּורִי</title>
+<title>הַמּוֹרִי</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png"/>
 <link rel="icon" href="/static/favicon.ico" sizes="any"/>
@@ -365,7 +365,7 @@
     <!-- Title (icons now live at the top-left corner of the page,
          see <div id="top-left-actions"> below the closing main). -->
     <div class="flex flex-col items-center justify-center text-center">
-      <h1 class="font-headline-xl text-5xl md:text-6xl xl:text-7xl font-extrabold shimmer-text leading-tight text-center whitespace-nowrap">הַ מֹּ ו רִ י</h1>
+      <h1 class="font-headline-xl text-5xl md:text-6xl xl:text-7xl font-extrabold shimmer-text leading-tight text-center whitespace-nowrap">הַ מּ וֹ רִ י</h1>
       <p class="text-base md:text-lg text-on-surface-variant/70 mt-1 font-medium">שאל, התאם ושפר מערכי שיעור בקלות</p>
     </div>
   </header>
@@ -391,7 +391,7 @@
   </div>
 
   <!-- Fixed Input Section -->
-  <div class="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-surface via-surface/98 to-transparent pointer-events-none">
+  <div id="input-section" class="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-surface via-surface/98 to-transparent pointer-events-none">
     <div class="mx-auto space-y-4 max-w-4xl pointer-events-auto">
       <!-- Suggestion Chips -->
       <div id="suggestion-chips" class="flex flex-wrap justify-center gap-3">
@@ -408,6 +408,36 @@
           📝 האם קיים אצלך שיעור בנושא
         </button>
       </div>
+      <!-- Lesson Source Panel — temporary sources, shown only in lesson mode.
+           Uploads go to lesson_pending_sources (NOT the Knowledge Base). -->
+      <div id="lesson-source-panel" class="hidden mb-3 p-3 bg-white/90 border border-primary/15 rounded-2xl shadow-md text-right" dir="rtl">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-label-md text-primary font-semibold">📎 מקורות לשיעור</span>
+          <span class="text-xs text-on-surface-variant/70">זמני — לא נשמר במאגר השיעורים</span>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <button id="ls-image-btn" type="button" class="px-3 py-1.5 rounded-full border border-primary/20 text-label-md text-primary hover:bg-primary-fixed transition-all">🖼️ תמונה</button>
+          <button id="ls-doc-btn" type="button" class="px-3 py-1.5 rounded-full border border-primary/20 text-label-md text-primary hover:bg-primary-fixed transition-all">📄 מסמך</button>
+          <label class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-primary/20 text-label-md text-primary cursor-pointer">
+            <input id="ls-repo" type="checkbox" class="accent-primary"> 📚 מאגר השיעורים
+          </label>
+          <label class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-primary/20 text-label-md text-primary cursor-pointer">
+            <input id="ls-web" type="checkbox" class="accent-primary"> 🌐 חיפוש באינטרנט
+          </label>
+          <input id="ls-image-input" type="file" accept="image/*" class="hidden">
+          <input id="ls-doc-input" type="file" accept=".pdf,.docx,.txt" class="hidden">
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <input id="ls-article" type="url" placeholder="קישור למאמר / דף אינטרנט" class="flex-1 min-w-[160px] bg-white ring-1 ring-primary/10 rounded-xl px-3 py-1.5 text-sm" dir="ltr">
+          <button id="ls-article-add" type="button" class="px-3 py-1.5 rounded-full bg-primary text-on-primary text-label-md">הוסף</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <input id="ls-youtube" type="url" placeholder="קישור YouTube" class="flex-1 min-w-[160px] bg-white ring-1 ring-primary/10 rounded-xl px-3 py-1.5 text-sm" dir="ltr">
+          <button id="ls-youtube-add" type="button" class="px-3 py-1.5 rounded-full bg-primary text-on-primary text-label-md">הוסף</button>
+        </div>
+        <div id="ls-chips" class="flex flex-wrap gap-2"></div>
+      </div>
+
       <!-- Text Input -->
       <div class="relative group">
         <div class="absolute top-5 right-5 flex items-center pointer-events-none">
@@ -569,11 +599,11 @@
       </button>
     </div>
     <div class="text-on-surface font-label-md space-y-4 leading-relaxed">
-      <p>ברוכים הבאים להַמֹּורִי! העוזר החינוכי החכם שלכם.</p>
+      <p>ברוכים הבאים להַמּוֹרִי! העוזר החינוכי החכם שלכם.</p>
       <div>
         <p class="font-semibold mb-1">המערכת מאפשרת:</p>
         <ul class="space-y-1 pr-2">
-          <li>• חיפוש ואיתור מערכי שיעור מבסיס הידע.</li>
+          <li>• חיפוש ואיתור מערכי שיעור ממאגר השיעורים.</li>
           <li>• הצגת אפשרויות למערכי שיעור בנושא מבוקש.</li>
           <li>• התאמת מערכי שיעור לפי דרישות המשתמש.</li>
           <li>• יצירת קובצי PDF מוכנים להורדה.</li>
@@ -635,6 +665,7 @@ const uploadBtn      = document.getElementById('btn-upload');
 const dropZone       = document.getElementById('drop-zone');
 const dropZoneStatus = document.getElementById('drop-zone-status');
 const documentList   = document.getElementById('document-list');
+const lessonPanel    = document.getElementById('lesson-source-panel');
 const sessionList    = document.getElementById('session-list');
 const searchInput    = document.getElementById('search-sessions');
 const confirmModal   = document.getElementById('confirm-modal');
@@ -728,6 +759,8 @@ function createNewSession() {
   markActive();
   renderSessionList();
   clearChatArea();
+  clearLessonStaged();
+  updateLessonPanel(null);
 }
 
 function switchSession(id) {
@@ -738,6 +771,8 @@ function switchSession(id) {
   markActive();
   renderSessionList();
   loadHistory();
+  clearLessonStaged();
+  updateLessonPanel(null);
 }
 
 function deleteSession(id) {
@@ -821,7 +856,10 @@ function api(url, opts = {}) {
 // ═══════════════════════════════════════════════════════════════
 async function sendMessage(text) {
   text = (text || '').trim();
-  if (!text || isBusy) return;
+  // Fold any staged lesson sources (URLs + web-search) into the outgoing
+  // message so n8n's Source Processing detects them from the message text.
+  const outgoing = (text + lessonSourcesSuffix()).trim();
+  if (!outgoing || isBusy) return;
 
   // Welcome-state start: a session is created only when the user
   // actually starts a conversation (clicks "New chat" or types the
@@ -834,9 +872,10 @@ async function sendMessage(text) {
   hideSuggestions();
   hideWelcome();
 
-  appendUserBubble(text);
+  appendUserBubble(outgoing);
   chatInput.value = '';
-  maybeAutoTitle(text);
+  maybeAutoTitle(outgoing);
+  clearLessonStaged();
   scrollToBottom();
 
   const thinkingEl = appendThinking();
@@ -846,7 +885,7 @@ async function sendMessage(text) {
     const res  = await api('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: outgoing }),
     });
     const data = await res.json();
     removeThinking(thinkingEl);
@@ -855,6 +894,7 @@ async function sendMessage(text) {
       appendAssistantBubble(data.error || 'אירעה שגיאה בשרת. נסו שוב.', []);
     } else {
       appendAssistantBubble(data.answer || '(אין תשובה)', data.context || []);
+      updateLessonPanel(data.lesson);
     }
   } catch (_) {
     removeThinking(thinkingEl);
@@ -866,6 +906,93 @@ async function sendMessage(text) {
     chatInput.focus();
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// LESSON SOURCE PANEL (temporary sources; only shown in lesson mode)
+// ═══════════════════════════════════════════════════════════════
+const lessonStaged = { urls: [] };
+
+function lessonSourcesSuffix() {
+  let s = '';
+  if (lessonStaged.urls.length) s += '\n' + lessonStaged.urls.join('\n');
+  if (document.getElementById('ls-repo')?.checked) s += '\nהשתמש במאגר השיעורים';
+  if (document.getElementById('ls-web')?.checked) s += '\nחפש באינטרנט';
+  return s;
+}
+
+function clearLessonStaged() {
+  lessonStaged.urls = [];
+  const web = document.getElementById('ls-web'); if (web) web.checked = false;
+  const repo = document.getElementById('ls-repo'); if (repo) repo.checked = false;
+  const box = document.getElementById('ls-chips'); if (box) box.innerHTML = '';
+  adjustChatBottomPadding();
+}
+
+// Keep the chat scroll area's bottom padding equal to the (variable-height)
+// input section so the Lesson Sources panel never overlaps the last message.
+function adjustChatBottomPadding() {
+  const sec = document.getElementById('input-section');
+  if (!sec || !chatArea) return;
+  chatArea.style.paddingBottom = (sec.offsetHeight + 24) + 'px';
+}
+window.addEventListener('resize', adjustChatBottomPadding);
+
+function updateLessonPanel(lesson) {
+  if (!lessonPanel) return;
+  const show = !!(lesson && (lesson.active || lesson.pending_offer));
+  lessonPanel.classList.toggle('hidden', !show);
+  adjustChatBottomPadding();
+  scrollToBottom();
+}
+
+function addLessonChip(label) {
+  const box = document.getElementById('ls-chips'); if (!box) return;
+  const chip = document.createElement('span');
+  chip.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary-fixed text-primary text-xs';
+  chip.textContent = label;
+  box.appendChild(chip);
+  adjustChatBottomPadding();
+}
+
+async function uploadLessonSource(file) {
+  if (!file) return;
+  if (!appState.activeId) createNewSession();
+  const form = new FormData();
+  form.append('files', file);
+  try {
+    const res = await fetch('/lesson/upload', {
+      method: 'POST',
+      headers: appState.activeId ? { 'X-Session-Id': appState.activeId } : {},
+      body: form,
+    });
+    const data = await res.json();
+    if (res.ok && data.added && data.added.length) {
+      data.added.forEach(a => addLessonChip((a.kind === 'image' ? '🖼️ ' : '📄 ') + a.filename));
+      showToast('המקור צורף לשיעור', 'success');
+    } else {
+      showToast(data.error || 'שגיאה בצירוף המקור', 'error');
+    }
+  } catch (_) {
+    showToast('שגיאת רשת בצירוף המקור', 'error');
+  }
+}
+
+function addLessonUrl(inputId, icon) {
+  const el = document.getElementById(inputId);
+  const url = (el?.value || '').trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) { showToast('נא להזין קישור תקין (http/https)', 'error'); return; }
+  lessonStaged.urls.push(url);
+  addLessonChip(icon + ' ' + (url.length > 40 ? url.slice(0, 40) + '…' : url));
+  if (el) el.value = '';
+}
+
+document.getElementById('ls-image-btn')?.addEventListener('click', () => document.getElementById('ls-image-input')?.click());
+document.getElementById('ls-doc-btn')?.addEventListener('click', () => document.getElementById('ls-doc-input')?.click());
+document.getElementById('ls-image-input')?.addEventListener('change', e => { uploadLessonSource(e.target.files?.[0]); e.target.value = ''; });
+document.getElementById('ls-doc-input')?.addEventListener('change', e => { uploadLessonSource(e.target.files?.[0]); e.target.value = ''; });
+document.getElementById('ls-article-add')?.addEventListener('click', () => addLessonUrl('ls-article', '🔗'));
+document.getElementById('ls-youtube-add')?.addEventListener('click', () => addLessonUrl('ls-youtube', '▶️'));
 
 async function loadHistory() {
   clearChatArea();
@@ -946,7 +1073,7 @@ async function uploadFiles(files) {
 function confirmDeleteDocument(docId, name) {
   confirm2(
     'מחיקת מסמך',
-    `האם למחוק את "${name}"? המסמך יוסר מהמאגר ומבסיס הידע.`,
+    `האם למחוק את "${name}"? המסמך יוסר ממאגר השיעורים.`,
     () => deleteDocument(docId, name)
   );
 }
@@ -1161,7 +1288,7 @@ function appendAssistantBubble(text, sources) {
       <div class="w-8 h-8 rounded-xl bg-secondary-container flex items-center justify-center shadow-sm">
         <span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
       </div>
-      <span class="font-label-sm text-label-sm font-bold text-primary">העוזר הפדגוגי</span>
+      <span class="font-label-sm text-label-sm font-bold text-primary">הַמּוֹרִי</span>
     </div>
     <div class="glass-panel p-6 rounded-2xl rounded-tr-none text-on-surface text-lg leading-relaxed shadow-sm border border-primary/10 break-words"></div>`;
 
@@ -1228,7 +1355,7 @@ function appendThinking() {
       <div class="w-8 h-8 rounded-xl bg-secondary-container flex items-center justify-center shadow-sm">
         <span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
       </div>
-      <span class="font-label-sm text-label-sm font-bold text-primary">העוזר הפדגוגי</span>
+      <span class="font-label-sm text-label-sm font-bold text-primary">הַמּוֹרִי</span>
     </div>
     <div class="glass-panel p-5 rounded-2xl rounded-tr-none shadow-sm border border-primary/10">
       <div class="flex gap-1.5 items-center">

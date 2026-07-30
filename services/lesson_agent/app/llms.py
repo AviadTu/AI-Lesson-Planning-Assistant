@@ -47,8 +47,10 @@ def cloud_chat(
 
 def extract_json(text: str) -> dict:
     """
-    Robustly parse a JSON object from model output: strip code fences, then take
-    the outermost ``{ ... }`` span. Raises ValueError if nothing parses.
+    Robustly parse a JSON object from model output: strip code fences, then parse
+    the first complete ``{ ... }`` object. Uses ``raw_decode`` so trailing prose
+    the model may append after the JSON (which yields "Extra data") is ignored.
+    Raises ValueError if nothing parses.
     """
     cleaned = _THINK_RE.sub("", text or "").strip()
     cleaned = re.sub(r"^```(?:json)?|```$", "", cleaned, flags=re.MULTILINE).strip()
@@ -56,9 +58,13 @@ def extract_json(text: str) -> dict:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
-    start, end = cleaned.find("{"), cleaned.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        return json.loads(cleaned[start : end + 1])
+    start = cleaned.find("{")
+    if start != -1:
+        try:
+            obj, _ = json.JSONDecoder().raw_decode(cleaned[start:])
+            return obj
+        except json.JSONDecodeError:
+            pass
     raise ValueError("No JSON object found in model output.")
 
 

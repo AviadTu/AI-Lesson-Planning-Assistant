@@ -9,12 +9,11 @@
       "typeVersion": 1,
       "position": [
         0,
-        600
+        560
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const t=$json; const message=t.message||''; const items=[];\nitems.push({json:{source_type:'rag',message,session_id:t.session_id}});\nconst urls=message.match(/https?:\\/\\/[^\\s)]+/g)||[];\nfor(const url of urls){ if(/youtube\\.com|youtu\\.be/i.test(url)) items.push({json:{source_type:'youtube',url,message}});\n  else items.push({json:{source_type:'article',url,message}}); }\n// web search: only when the user explicitly asks (Perplexity credential handles auth)\nif(t.want_web||/חפש|באינטרנט|web|perplexity/i.test(message)) items.push({json:{source_type:'web',message}});\n// attachments: documents & images (base64 from Gateway)\nfor(const a of (t.attachments||[])){ if(a.kind==='document') items.push({json:{source_type:'document',filename:a.filename,mime:a.mime,content_base64:a.content_base64}});\n  else if(a.kind==='image') items.push({json:{source_type:'image',filename:a.filename,mime:a.mime,content_base64:a.content_base64}}); }\nreturn items;"
       },
       "id": "fd48ca94-1716-44fb-ae51-d337ebd7d448",
@@ -22,8 +21,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
-        600
+        224,
+        560
       ]
     },
     {
@@ -34,7 +33,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -57,7 +58,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -80,7 +83,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -103,7 +108,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -126,7 +133,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -149,7 +158,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -179,8 +190,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        460,
-        600
+        448,
+        496
       ]
     },
     {
@@ -199,14 +210,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
+        1344,
         80
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const c=($json.chunks)||[];\nif(!c.length) return [{json:{source_type:'_marker',type:'_marker',text:'',dkey:'_marker'}}];\nreturn c.map(x=>({json:{type:'rag',title:x.original_filename||'knowledge base',text:x.text||'',url:null,citation:x.original_filename||'RAG',metadata:{doc_id:x.doc_id,page:x.page_number},dkey:'rag||'+String(x.text||'').slice(0,80)}}));"
       },
       "id": "9389d49c-c746-4971-adb4-159dc12a77b2",
@@ -214,21 +224,20 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
+        1568,
         80
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
       "id": "be2af0aa-2670-467a-a65c-daa652c40240",
@@ -236,22 +245,19 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
-        240
+        1120,
+        272
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "operation": "extractHtmlContent",
-        "sourceData": "json",
-        "dataPropertyName": "data",
         "extractionValues": {
           "values": [
             {
               "key": "text",
-              "cssSelector": "body",
-              "returnValue": "text"
+              "cssSelector": "body"
             }
           ]
         },
@@ -262,14 +268,13 @@
       "type": "n8n-nodes-base.html",
       "typeVersion": 1.2,
       "position": [
-        940,
-        240
+        1344,
+        272
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const url=$('Detect Source Types').item.json.url;\nconst text=String($json.text||'').replace(/\\s+/g,' ').trim().slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'url',url,reason:'could not extract article text'},dkey:'fail-'+url}}];\nreturn [{json:{type:'url',title:url,text,url,citation:url,metadata:{},dkey:'url|'+url+'|'+text.slice(0,80)}}];"
       },
       "id": "8e779b2a-1188-46eb-9edf-ed4e6d80de17",
@@ -277,13 +282,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1160,
-        240
+        1568,
+        272
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const url=$json.url||''; const vid=(url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/)||[])[1]||'';\nreturn [{json:{url,vid,page_url:'https://www.youtube.com/watch?v='+vid}}];"
       },
       "id": "71cddc91-a9d2-4d62-a9ea-e2f2da0f1de5",
@@ -291,21 +295,20 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        400
+        672,
+        464
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.page_url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
       "id": "93fd9029-a009-4b11-b1e8-06aa5cc0d4aa",
@@ -313,14 +316,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        940,
-        400
+        896,
+        464
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const html=String($json.data||''); const m=html.match(/\"captionTracks\":(\\[.*?\\])/);\nlet cap=''; if(m){try{const t=JSON.parse(m[1].replace(/\\\\u0026/g,'&')); if(t.length&&t[0].baseUrl) cap=t[0].baseUrl;}catch(e){}}\nconst tm=html.match(/<title>([^<]*)<\\/title>/); const title=tm?tm[1].replace(' - YouTube',''):'YouTube';\nconst src=$('Extract Video ID').item.json;\nreturn [{json:{cap_url:cap,url:src.url,title}}];"
       },
       "id": "ae0fa8ba-1259-4fef-b399-1e71ce915b6f",
@@ -328,21 +330,20 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1160,
-        400
+        1120,
+        464
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.cap_url }}",
         "options": {
-          "timeout": 15000,
           "response": {
             "response": {
               "responseFormat": "text"
             }
-          }
+          },
+          "timeout": 15000
         }
       },
       "id": "4b03a972-45a8-40b9-bf33-6e5f5e7cb782",
@@ -350,14 +351,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
-        400
+        1344,
+        464
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "function strip(h){return String(h).replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,\"'\").replace(/\\s+/g,' ').trim();}\n const c=$('Extract Caption URL').item.json; const text=strip($json.data||'').slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'youtube',url:c.url,reason:'no captions available'},dkey:'fail-'+c.url}}];\nreturn [{json:{type:'youtube',title:c.title||'YouTube',text,url:c.url,citation:c.url,metadata:{},dkey:'yt|'+c.url+'|'+text.slice(0,80)}}];"
       },
       "id": "757a1b3e-293f-4a54-9d5d-d4b98b9e22b8",
@@ -365,45 +365,41 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1600,
-        400
+        1568,
+        464
       ]
     },
     {
       "parameters": {
-        "resource": "chat",
-        "operation": "complete",
-        "model": "sonar",
         "messages": {
           "message": [
             {
-              "role": "user",
               "content": "={{ $json.message }}"
             }
           ]
         },
         "simplify": true,
-        "options": {}
+        "options": {},
+        "requestOptions": {}
       },
       "id": "0828f5ac-47b4-4389-ba6f-cbb0801f08f4",
       "name": "Perplexity Search",
       "type": "n8n-nodes-base.perplexity",
       "typeVersion": 2,
       "position": [
-        720,
-        560
+        1344,
+        656
       ],
-      "onError": "continueRegularOutput",
       "credentials": {
         "perplexityApi": {
           "id": "igjoBSfEryYWoPT8",
           "name": "Perplexity account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const m=$json.message;\nconst c=(typeof m==='string'?m:(m&&m.content))||($json.choices&&$json.choices[0]&&$json.choices[0].message&&$json.choices[0].message.content)||$json.text||'';\nconst cites=$json.citations||[];\nif(!c) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'web',reason:'perplexity returned no content'},dkey:'fail-web'}}];\nreturn [{json:{type:'web',title:'חיפוש רשת (Perplexity)',text:String(c).slice(0,4000),url:(cites[0]||null),citation:'Perplexity',metadata:{citations:cites},dkey:'web||'+String(c).slice(0,80)}}];"
       },
       "id": "c00bc60d-6aa7-469e-aeab-7711ed00e9a2",
@@ -411,8 +407,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        560
+        1568,
+        656
       ]
     },
     {
@@ -428,14 +424,13 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        720,
-        720
+        672,
+        1136
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const a=$('Detect Source Types').item.json; const fn=(a.filename||'').toLowerCase(); const mime=(a.mime||'').toLowerCase();\nlet ftype='unknown';\nif(mime.includes('pdf')||fn.endsWith('.pdf')) ftype='pdf';\nelse if(mime.includes('word')||fn.endsWith('.docx')) ftype='docx';\nelse if(mime.includes('text')||fn.endsWith('.txt')) ftype='txt';\nreturn [{json:{file_type:ftype,filename:a.filename,mime:a.mime,content_base64:a.content_base64},binary:$binary}];"
       },
       "id": "a20c41d8-012e-4e22-b79d-e5989054e4dc",
@@ -443,8 +438,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
-        720
+        896,
+        1136
       ]
     },
     {
@@ -455,7 +450,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -478,7 +475,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -501,7 +500,9 @@
               "conditions": {
                 "options": {
                   "caseSensitive": true,
-                  "typeValidation": "loose"
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -531,14 +532,13 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        1160,
-        720
+        1120,
+        1104
       ]
     },
     {
       "parameters": {
         "operation": "pdf",
-        "binaryPropertyName": "data",
         "options": {}
       },
       "id": "45d852f7-317d-404d-a207-16819c1158f6",
@@ -546,15 +546,14 @@
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
       "position": [
-        1380,
-        640
+        1344,
+        848
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "operation": "text",
-        "binaryPropertyName": "data",
         "options": {}
       },
       "id": "3e35f880-c049-402b-a684-670cf811ece7",
@@ -562,8 +561,8 @@
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
       "position": [
-        1380,
-        780
+        1344,
+        1232
       ],
       "onError": "continueRegularOutput"
     },
@@ -583,14 +582,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
-        720
+        1344,
+        1040
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const a=$json; return [{json:{source_type:'_failed',type:'_failed',failed:{type:'document',filename:a.filename,reason:'unsupported file format'},dkey:'fail-'+(a.filename||'doc')}}];"
       },
       "id": "1b1a124e-23c4-4810-9b50-b0138eda3c36",
@@ -598,13 +596,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1380,
-        900
+        1568,
+        1392
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const a=$('Detect Source Types').item.json;\nconst text=($json.text||$json.data||$json.extracted||'').toString().replace(/\\s+/g,' ').trim().slice(0,6000);\nconst fn=a.filename||'document';\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'document',filename:fn,reason:'no text extracted'},dkey:'fail-'+fn}}];\nreturn [{json:{type:'document',title:fn,text,url:null,citation:fn,metadata:{mime:a.mime,filename:fn},dkey:'doc|'+fn+'|'+text.slice(0,80)}}];"
       },
       "id": "3cde775e-40a7-4bd0-821f-f720376e3adf",
@@ -612,8 +609,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1620,
-        720
+        1568,
+        1040
       ]
     },
     {
@@ -629,58 +626,26 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        720,
-        900
+        1120,
+        1584
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "resource": "image",
-        "operation": "analyze",
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list"
-        },
-        "text": "תאר את התוכן החינוכי בתמונה בעברית.",
-        "inputType": "binary",
-        "binaryPropertyName": "data",
-        "options": {}
-      },
-      "id": "9b88af9e-db6c-4a58-bf45-7968838d2e58",
-      "name": "Analyze Image",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
-      "position": [
-        960,
-        900
-      ],
-      "onError": "continueRegularOutput",
-      "credentials": {
-        "openAiApi": {
-          "id": "sPvMOVCFcalYhnw9",
-          "name": "OpenAI account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const a=$('Detect Source Types').item.json; const fn=a.filename||'image';\nconst text=($json.content||$json.text||'').toString().trim().slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'image',filename:fn,reason:'image analysis failed'},dkey:'fail-'+fn}}];\nreturn [{json:{type:'image',title:fn,text,url:null,citation:fn,metadata:{filename:fn,mime:a.mime},dkey:'img|'+fn+'|'+text.slice(0,80)}}];"
+        "jsCode": "const a=$('Detect Source Types').item.json; const fn=a.filename||'image';\nconst j=$json; let text='';\nconst c=j.content;\nif(typeof c==='string') text=c;\nelse if(c && Array.isArray(c.parts)) text=c.parts.map(p=>(p&&p.text)||'').join(' ');\nelse if(typeof j.text==='string') text=j.text;\nelse if(j.candidates && j.candidates[0]) { const p=(((j.candidates[0].content)||{}).parts)||[]; text=p.map(x=>(x&&x.text)||'').join(' '); }\ntext=(text||'').toString().trim().slice(0,4000);\nif(!text) return [{json:{source_type:'_failed',type:'_failed',failed:{type:'image',filename:fn,reason:'image analysis failed'},dkey:'fail-'+fn}}];\nreturn [{json:{type:'image',title:fn,text,url:null,citation:fn,metadata:{filename:fn,mime:a.mime},dkey:'img|'+fn+'|'+text.slice(0,80)}}];"
       },
       "id": "6d1d132d-c478-4bba-9297-ec3ce64f930c",
       "name": "Normalize Image",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        900
+        1568,
+        1584
       ]
     },
     {
       "parameters": {
-        "mode": "append",
         "numberInputs": 7
       },
       "id": "0fd90423-781e-4ee0-9318-4a455f74978b",
@@ -688,13 +653,12 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.1,
       "position": [
-        1900,
-        600
+        1792,
+        576
       ]
     },
     {
       "parameters": {
-        "operation": "removeDuplicateInputItems",
         "compare": "selectedFields",
         "fieldsToCompare": "dkey",
         "options": {}
@@ -704,8 +668,8 @@
       "type": "n8n-nodes-base.removeDuplicates",
       "typeVersion": 2,
       "position": [
-        2120,
-        600
+        2016,
+        656
       ]
     },
     {
@@ -728,13 +692,12 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2320,
-        600
+        2240,
+        656
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const items=$input.all().map(i=>i.json);\nconst sources=items.filter(s=>s&&s.type&&!['_marker','_failed'].includes(s.type)&&s.text)\n  .map(s=>({type:s.type,title:s.title,text:s.text,url:(s.url??null),citation:s.citation,metadata:s.metadata||{}}));\nconst failed=items.filter(s=>s&&s.type==='_failed').map(s=>s.failed);\nconst warnings=failed.map(f=>`מקור מסוג ${f.type} נכשל: ${f.reason||''}`.trim());\nreturn [{json:{sources,warnings,failed_sources:failed,count:sources.length}}];"
       },
       "id": "0c2bdbe7-7d58-441b-9fed-2395a1b7b49b",
@@ -742,9 +705,55 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2520,
-        600
+        2464,
+        656
       ]
+    },
+    {
+      "parameters": {
+        "height": 1872,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1200,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "e102f408-4f85-40fd-bdfd-d4f1c4bc0dd4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-2.5-flash",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "תאר את התוכן החינוכי בתמונה בעברית.",
+        "inputType": "binary",
+        "binaryPropertyName": "data",
+        "simplify": true,
+        "options": {}
+      },
+      "id": "ee249f53-d232-4961-abe0-44497858114d",
+      "name": "Analyze Image",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        900
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "T2dR6UbBNCsTKQvl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "connections": {
@@ -1068,17 +1077,6 @@
         ]
       ]
     },
-    "Analyze Image": {
-      "main": [
-        [
-          {
-            "node": "Normalize Image",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Normalize Image": {
       "main": [
         [
@@ -1122,11 +1120,21 @@
           }
         ]
       ]
+    },
+    "Analyze Image": {
+      "main": [
+        [
+          {
+            "node": "Normalize Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "meta": {
     "id": "yulzQcUFjXD4fVg7"

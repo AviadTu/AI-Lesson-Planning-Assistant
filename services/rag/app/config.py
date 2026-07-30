@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     # is validated at call time, never at import. Embeddings stay local Ollama.
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
-    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_MODEL: str = "gpt-5"
 
     # ── llama.cpp / local GGUF model ─────────────────────────────────
     LLM_MODEL_PATH: str = ""                  # absolute path to the .gguf file

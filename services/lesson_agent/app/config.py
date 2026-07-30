@@ -68,8 +68,8 @@ class Settings(BaseSettings):
     # strong→stronger model (they reuse the shared tier temperatures above).
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
-    OPENAI_FAST_MODEL: str = "gpt-4o-mini"
-    OPENAI_STRONG_MODEL: str = "gpt-4o"
+    OPENAI_FAST_MODEL: str = "gpt-5-mini"
+    OPENAI_STRONG_MODEL: str = "gpt-5"
     OPENAI_TIMEOUT: float = 300.0
 
     # ── Observability: Langfuse (optional, feature-flagged) ──────────

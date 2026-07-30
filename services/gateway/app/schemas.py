@@ -15,9 +15,17 @@ class Source(BaseModel):
     doc_id: str | None = None
 
 
+class LessonState(BaseModel):
+    active: bool = False
+    pending_offer: bool = False
+
+
 class ChatResponse(BaseModel):
     answer: str
     context: list[Source] = []
+    # Post-turn lesson-planning state, so the frontend can show/hide the
+    # temporary lesson-source panel (shown while active or a pending offer).
+    lesson: LessonState | None = None
 
 
 # ── /history ─────────────────────────────────────────────────────────

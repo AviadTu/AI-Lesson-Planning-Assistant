@@ -49,6 +49,22 @@ def chunk_document(
     return chunks
 
 
+def chunk_document_single(segments: list[Segment]) -> list[Chunk]:
+    """
+    Presentation mode: represent the WHOLE document as exactly one chunk.
+
+    All segments (e.g. PDF pages) are joined in order into a single text so the
+    embedding represents the complete document and headings/sections/activities
+    are never split into separate chunks. Assumes short documents (<= ~3 pages).
+    """
+    text = "\n\n".join(
+        (s.text or "").strip() for s in segments if (s.text or "").strip()
+    ).strip()
+    if not text:
+        return []
+    return [Chunk(text=text, chunk_index=0, page_number=None)]
+
+
 def _split_text(text: str, size: int, overlap: int) -> list[str]:
     """Sliding-window split with boundary snapping and overlap."""
     text = (text or "").strip()

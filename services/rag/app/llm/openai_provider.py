@@ -54,8 +54,13 @@ class OpenAIProvider(LLMProvider):
             "temperature": (
                 settings.LLM_TEMPERATURE if temperature is None else temperature
             ),
-            "max_tokens": max_tokens or settings.LLM_MAX_TOKENS,
         }
+        # Send max_tokens only when set. GPT-5 reasoning models reject
+        # 'max_tokens' (they use 'max_completion_tokens'); leaving it out lets
+        # them run, while classic models still honour LLM_MAX_TOKENS.
+        _mt = max_tokens or settings.LLM_MAX_TOKENS
+        if _mt:
+            payload["max_tokens"] = _mt
 
         logger.info("OpenAI chat: model=%s", model)
         with httpx.Client(timeout=_CHAT_TIMEOUT, verify=_SSL_CONTEXT) as client:

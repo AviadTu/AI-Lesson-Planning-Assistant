@@ -50,7 +50,6 @@ def retrieve(
         query_embedding = ollama_embeddings.embed_query(cleaned)
     except Exception as exc:  # noqa: BLE001 — surface as a clear service error
         raise EmbeddingUnavailableError(str(exc)) from exc
-
     rows = chroma.query_chunks(query_embedding, k)
 
     results: list[dict] = []

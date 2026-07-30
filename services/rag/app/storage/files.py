@@ -7,12 +7,14 @@ behavioural details are preserved:
   * extension allow-list (txt, pdf, docx);
   * Hebrew / Unicode filenames preserved (only path/control chars stripped);
   * TXT files re-encoded Windows-1255 -> UTF-8 so Hebrew is not garbled;
-  * re-uploading the same name overwrites the existing file;
-  * pathological names fall back to ``document_<uuid>``.
+  * a path-traversal guard on every id -> path resolution.
 
-The ``doc_id`` is the sanitised filename (no UUID prefix), so it appears with
-its real name in the document list and in citations — exactly as the S3 key
-did before.  A path-traversal guard replaces the old S3-prefix check.
+The ``doc_id`` is a generated UUID (not the filename), so two different
+documents that share a filename get distinct ids and never overwrite each
+other. The human-readable original filename is preserved separately (registry +
+Chroma metadata) for the document list, downloads and citations. On disk the
+file is stored under its ``doc_id``; extraction dispatches on the original
+filename's extension, so the stored file needs no extension of its own.
 """
 
 from __future__ import annotations
@@ -44,28 +46,17 @@ def is_allowed(filename: str) -> bool:
     return _extension(filename) in settings.allowed_extensions
 
 
-def _sanitise(name: str) -> str:
-    """
-    Preserve visible characters (incl. Hebrew) while removing path- and
-    control-unsafe characters: slashes, NUL/control chars, surrounding
-    whitespace.
-    """
-    stripped = "".join(
-        ch
-        for ch in name
-        if ch not in ("/", "\\") and (ord(ch) >= 32 and ord(ch) != 127)
-    )
-    return stripped.strip()
-
-
 def build_doc_id(original_filename: str) -> str:
-    """Build a clean, filesystem-safe document id from the filename."""
-    safe_name = _sanitise(original_filename)
-    if not safe_name:
-        ext = _extension(original_filename)
-        token = uuid.uuid4().hex
-        safe_name = f"document_{token}.{ext}" if ext else f"document_{token}"
-    return safe_name
+    """
+    Generate a stable, unique, filesystem-safe document id.
+
+    A fresh UUID (not the filename): two different documents that happen to
+    share a filename get distinct ids and never silently overwrite one another.
+    The ``original_filename`` argument is accepted for API symmetry but is
+    intentionally not used to derive the id — it is preserved separately as
+    metadata by the caller (registry + Chroma).
+    """
+    return uuid.uuid4().hex
 
 
 def resolve_path(doc_id: str) -> Path:

@@ -15,7 +15,7 @@ import logging
 import threading
 
 from app import status as status_mgr
-from app.chunking import chunk_document
+from app.chunking import chunk_document_single
 from app.config import settings
 from app.embeddings import ollama_embeddings
 from app.extraction import extract_segments
@@ -23,16 +23,24 @@ from app.vectorstore import chroma
 
 logger = logging.getLogger("rag.ingestion")
 
+# Max characters sent to the local embedding model per document. nomic-embed-text
+# errors (HTTP 500) above its ~2048-token context; ~2000 Hebrew chars stays under
+# it with margin. Only affects the embedding input — the full text is stored.
+_EMBED_CHAR_CAP = 2000
+
 
 def ingest_document(doc_id: str, original_filename: str, path: str) -> None:
     """Run the full ingestion pipeline synchronously for one document."""
     status_mgr.start(doc_id)
     try:
         segments = extract_segments(path, original_filename)
-        chunks = chunk_document(
-            segments, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP
-        )
-        texts = [chunk.text for chunk in chunks]
+        # Presentation mode: one document = exactly one chunk (short docs).
+        chunks = chunk_document_single(segments)
+        # The whole document is stored as the single chunk, but nomic-embed-text
+        # hard-errors above its ~2048-token context. Embed a safe-length prefix
+        # so ingestion never fails; the FULL text is still what gets stored and
+        # retrieved. (Short docs — the common case — are embedded in full.)
+        texts = [chunk.text[:_EMBED_CHAR_CAP] for chunk in chunks]
         embeddings = ollama_embeddings.embed_texts(texts)
         stored = chroma.replace_document(
             doc_id, original_filename, chunks, embeddings

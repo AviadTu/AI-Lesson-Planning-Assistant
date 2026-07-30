@@ -62,7 +62,11 @@ class OpenAIProvider(LLMProvider):
             ],
         }
         if max_tokens:
-            payload["max_tokens"] = max_tokens
+            # gpt-5 / reasoning models require ``max_completion_tokens`` (they
+            # reject ``max_tokens``). This budget must cover the reasoning tokens
+            # PLUS the full answer, so it is configured generously (see
+            # CLOUD_MAX_TOKENS) to avoid truncating a complete lesson.
+            payload["max_completion_tokens"] = max_tokens
 
         logger.info("OpenAI chat: model=%s", model)
         with httpx.Client(timeout=settings.OPENAI_TIMEOUT, verify=_SSL_CONTEXT) as client:
@@ -83,6 +87,12 @@ class OpenAIProvider(LLMProvider):
 
         choices = data.get("choices") or []
         content = (choices[0].get("message") or {}).get("content") if choices else None
+        # Log truncation explicitly so an incomplete generation is diagnosable.
+        if choices and choices[0].get("finish_reason") == "length":
+            logger.warning(
+                "OpenAI response truncated (finish_reason=length, model=%s, usage=%s)",
+                model, data.get("usage"),
+            )
         text = _THINK_RE.sub("", str(content or "")).strip()
         tracing.log_generation(trace_name, model, user, text)
         return text

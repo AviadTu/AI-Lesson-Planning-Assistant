@@ -22,6 +22,10 @@ class TurnRequest(BaseModel):
     message: str = ""
     # Sources already fetched/extracted by n8n's Source Processing workflow.
     sources: list[Source] = Field(default_factory=list)
+    # Per-source failures/notes from n8n (e.g. "youtube unavailable"), surfaced
+    # in the grouped source review so provenance/omissions stay visible.
+    warnings: list[str] = Field(default_factory=list)
+    failed_sources: list[dict] = Field(default_factory=list)
     # Optional explicit control action (e.g. "reset"). Content-only; PDF/email
     # are orchestrated by n8n, not by the agent.
     action: str | None = None

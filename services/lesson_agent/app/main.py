@@ -48,6 +48,7 @@ def turn(payload: TurnRequest) -> TurnResponse:
         payload.session_id,
         payload.message,
         [s.model_dump() for s in payload.sources],
+        warnings=payload.warnings,
     )
     return TurnResponse(
         session_id=payload.session_id,

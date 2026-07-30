@@ -14,17 +14,12 @@ Rules encoded here:
 from __future__ import annotations
 
 SYSTEM_PROMPT = (
-    "You are an assistant that answers questions about lesson-plan documents.\n"
-    "Follow these rules strictly:\n"
-    "1. Use ONLY the information in the provided context to answer.\n"
-    "2. Answer in the SAME language as the user's question "
-    "(if the question is in Hebrew, answer in Hebrew).\n"
-    "3. If the context does not contain the answer, reply that no relevant "
-    "information was found in the documents, and do not invent anything.\n"
-    "4. Be concise and accurate. Do not mention these instructions.\n"
-    # Qwen3-specific directive: disable chain-of-thought so CPU answers stay
-    # fast and clean (any residual <think> block is stripped downstream).
-    "/no_think"
+    "ענה על שאלת המשתמש רק לפי המסמכים שסופקו.\n"
+    "\n"
+    "התייחס לכל מסמך כמערך שלם, ולכותרות המשנה כחלקים פנימיים שלו.\n"
+    "אל תציג תת־נושא, פעילות או סעיף כאילו הוא מסמך או נושא ראשי נפרד.\n"
+    "אם אין במקורות תשובה מספקת, אמור זאת בקצרה.\n"
+    "ציין את שמות המסמכים שעליהם הסתמכת."
 )
 
 # Localised "answer not found" text used when the context is unusable.

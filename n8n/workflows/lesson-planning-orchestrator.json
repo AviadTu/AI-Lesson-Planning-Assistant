@@ -113,7 +113,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return [{json:{session_id:$json.session_id,message:$json.message,sources:$json.sources||[],warnings:$json.warnings||[]}}];"
+        "jsCode": "return [{json:{session_id:$json.session_id,message:$json.message,sources:$json.sources||[],warnings:$json.warnings||[],failed_sources:$json.failed_sources||[]}}];"
       },
       "id": "3c916aed-babb-4f06-9839-586bec36e5ce",
       "name": "Build Agent Request",
@@ -130,9 +130,9 @@
         "url": "http://host.docker.internal:8004/turn",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"session_id\": $json.session_id, \"message\": $json.message, \"sources\": $json.sources } }}",
+        "jsonBody": "={{ { \"session_id\": $json.session_id, \"message\": $json.message, \"sources\": $json.sources, \"warnings\": $json.warnings, \"failed_sources\": $json.failed_sources } }}",
         "options": {
-          "timeout": 300000
+          "timeout": 550000
         }
       },
       "id": "9f374783-8781-40a2-934d-96eea755e554",
@@ -147,7 +147,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const r=$json||{}; let answer=r.reply||'';\nconst warnings=($('Build Agent Request').first().json.warnings)||[];\nif(r.stage==='final'&&r.lesson){ const need=['opening','central_idea','summary']; const miss=need.filter(k=>!r.lesson[k]);\n  if(miss.length) answer+='\\n\\n(הערה: חלק מהמקטעים חסרים — ניתן לבקש השלמה.)'; }\nif(warnings.length) answer+='\\n\\n'+warnings.join('\\n');\nreturn [{json:{answer,stage:r.stage||'intake'}}];"
+        "jsCode": "const r=$json||{}; let answer=r.reply||'';\nif(r.stage==='final'&&r.lesson){\n  const need=['opening','central_idea','activity','central_discussion','summary'];\n  const miss=need.filter(k=>!(typeof r.lesson[k]==='string' && r.lesson[k].trim().length>30));\n  if(miss.length){ return [{json:{answer:'אירעה תקלה: מערך השיעור שהתקבל אינו שלם. נסו/י שוב.',stage:'error'}}]; }\n}\nreturn [{json:{answer,stage:r.stage||'intake'}}];"
       },
       "id": "a63ea91d-3b77-433a-a73c-2da937c0583d",
       "name": "Validate Response",

@@ -14,13 +14,12 @@
       "typeVersion": 2,
       "position": [
         160,
-        300
+        288
       ],
       "webhookId": "eff96ea6-738a-4244-a59c-27a256d72722"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "=http://host.docker.internal:8004/lesson/{{ $json.body.session_id }}",
         "options": {
           "timeout": 30000
@@ -31,8 +30,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        360,
-        300
+        384,
+        288
       ],
       "onError": "continueRegularOutput"
     },
@@ -52,23 +51,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        560,
-        300
+        608,
+        288
       ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const gl=$('Get Lesson').first().json||{}; const rp=$input.first().json||{};\nconst msg=(($('Webhook In').first().json.body||{}).message)||'';\nconst em=(msg.match(/[\\w.+-]+@[\\w-]+\\.[\\w.-]+/)||[])[0]||'';\nconst wantEmail=/מייל|אימייל|email/i.test(msg);\nif(!gl.has_lesson) return [{json:{answer:'עדיין אין מערך שיעור מוכן להורדה. נשלים אותו קודם, ואז אפשר להפיק PDF.',want_email:false,download_url:''}}];\nif(rp&&rp.download_url){ let ans='מערך השיעור מוכן! [להורדת ה-PDF 📄]('+rp.download_url+')';\n  if(wantEmail&&!em) ans+='\\n\\nלשליחה במייל, ציין/י כתובת אימייל.';\n  else if(wantEmail&&em) ans+='\\n\\nאשלח את הקובץ לכתובת '+em+' (דורש הגדרת SMTP ב-n8n).';\n  return [{json:{answer:ans,want_email:(wantEmail&&!!em),download_url:rp.download_url,recipient:em,\n    lesson_title:((gl.lesson&&gl.lesson.meta&&gl.lesson.meta.title)||'מערך שיעור')}}]; }\nreturn [{json:{answer:'אירעה תקלה בהפקת ה-PDF. נסה/י שוב.',want_email:false,download_url:''}}];"
+        "jsCode": "const gl=$('Get Lesson').first().json||{}; const rp=$input.first().json||{};\nconst msg=(($('Webhook In').first().json.body||{}).message)||'';\nconst em=(msg.match(/[\\w.+-]+@[\\w-]+\\.[\\w.-]+/)||[])[0]||'aviadq@gmail.com';\nconst wantEmail=/מייל|אימייל|email|gmail/i.test(msg);\nif(!gl.has_lesson){ return [{json:{answer:'עדיין אין מערך שיעור מוכן להורדה. נשלים אותו קודם, ואז אפשר להפיק PDF.',want_email:false,download_url:''}}]; }\nif(rp&&rp.download_url){ let ans='מערך השיעור מוכן! [להורדת ה-PDF]('+rp.download_url+')'; if(wantEmail){ ans+=' — הקובץ נשלח לכתובת '+em+' במייל.'; } return [{json:{answer:ans,want_email:wantEmail,download_url:rp.download_url,recipient:em,lesson_title:((gl.lesson&&gl.lesson.meta&&gl.lesson.meta.title)||'מערך שיעור')}}]; }\nreturn [{json:{answer:'אירעה תקלה בהפקת ה-PDF. נסה/י שוב.',want_email:false,download_url:''}}];"
       },
       "id": "5c75f07c-64b9-4465-ad67-14fb796144de",
       "name": "Build Answer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        760,
-        300
+        832,
+        288
       ]
     },
     {
@@ -76,7 +74,9 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "typeValidation": "loose"
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
           },
           "combinator": "and",
           "conditions": [
@@ -91,20 +91,20 @@
               }
             }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "afbf412b-f2f5-4e4f-b459-4513f894f373",
       "name": "Wants Email?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        980,
-        300
+        1056,
+        288
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "=http://host.docker.internal:8000{{ $json.download_url }}",
         "options": {
           "response": {
@@ -120,33 +120,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1180,
-        200
+        1280,
+        208
       ],
       "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "fromEmail": "={{ $env.SMTP_FROM }}",
-        "toEmail": "={{ $('Build Answer').first().json.recipient }}",
-        "subject": "={{ $('Build Answer').first().json.lesson_title }}",
-        "emailFormat": "text",
-        "text": "מצורף מערך השיעור שהופק.",
-        "options": {
-          "attachments": "data"
-        }
-      },
-      "id": "21d74091-56df-4328-bf05-1268f91b88eb",
-      "name": "Send Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        1380,
-        200
-      ],
-      "onError": "continueRegularOutput",
-      "disabled": true,
-      "webhookId": "faec36f6-f54d-4486-8b57-f7482300ce88"
     },
     {
       "parameters": {
@@ -159,9 +136,40 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1580,
-        300
+        1728,
+        288
       ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Build Answer').first().json.recipient }}",
+        "subject": "={{ $('Build Answer').first().json.lesson_title }}",
+        "emailType": "text",
+        "message": "מצורף מערך השיעור שהופק (PDF).",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "c1d2e3f4-a5b6-47c8-9d0e-1f2a3b4c5d6e",
+      "name": "Send Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1504,
+        208
+      ],
+      "webhookId": "74978370-9b7f-45fe-ae63-a7b205f4362f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oB0pEchaRzvbNYRd",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -231,14 +239,14 @@
       "main": [
         [
           {
-            "node": "Send Email",
+            "node": "Send Gmail",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Email": {
+    "Send Gmail": {
       "main": [
         [
           {
@@ -251,7 +259,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
   "meta": {
     "id": "b8eVEHPDWsKEGztX"

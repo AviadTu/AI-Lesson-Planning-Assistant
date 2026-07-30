@@ -70,6 +70,41 @@ def is_explicit_lesson(message: str) -> bool:
     return bool(_LESSON_RE.search(message or ""))
 
 
+# Bare "create a NEW lesson" request with no topic and no sources — e.g.
+# "צור מערך שיעור חדש", "מערך שיעור חדש", "בנה מערך שיעור". Matched only when the
+# whole message is the create command (no trailing topic), so the Gateway can
+# enter Lesson Mode and explain the source options WITHOUT running any search.
+_NEW_LESSON_RE = re.compile(
+    r"^\s*(?:אני\s+רוצה\s+)?"
+    r"(?:צור|צרי|ליצור|תיצור|יצירת|בנה|בני|לבנות|תבנ[הי]|נבנה|בוא[יי]?\s+ניצור)?"
+    r"\s*(?:לי\s+)?מער(?:ך|כי)\s*שיעור(?:\s+חדש)?\s*[.!?]*$",
+    re.IGNORECASE,
+)
+
+
+def is_new_lesson_request(message: str) -> bool:
+    return bool(_NEW_LESSON_RE.match(message or ""))
+
+
+# Natural lesson-planning intent WITHOUT the explicit "צור"/"בנה" verbs — e.g.
+# "אני רוצה שיעור על…", "נעשה שיעור על…", "שיעור בנושא…", "אני צריך מערך בנושא…".
+# Matched only when the wording clearly expresses wanting/needing a lesson (a
+# wanting verb next to שיעור/מערך, or a lesson explicitly framed "בנושא …"), so a
+# bare topic with no lesson context does NOT trigger planning.
+_LESSON_INTENT_RE = re.compile(
+    r"(?:רוצ[הים]|צריכ[הים]?|צריך|מעוניינ|אשמח|נעשה|נכין|נלמד|בוא[יו]?\s+נ)"
+    r"[^\n]{0,25}(?:שיעור|מער(?:ך|כי))"
+    r"|(?:שיעור|מער(?:ך|כי))\s+בנושא\s+\S+",
+    re.IGNORECASE,
+)
+
+
+def is_lesson_intent(message: str) -> bool:
+    """Deterministic lesson-planning intent (explicit or natural phrasing)."""
+    m = message or ""
+    return bool(_LESSON_RE.search(m) or _LESSON_INTENT_RE.search(m))
+
+
 def is_affirmative(message: str) -> bool:
     return bool(_AFFIRM_RE.search(message or ""))
 
@@ -133,13 +168,41 @@ def _has_lesson_signal(message: str) -> bool:
     return bool(_LESSON_SIGNAL_RE.search(message or ""))
 
 
+def _deterministic_intent(message: str) -> str:
+    """
+    Rule-based intent used when the local classifier is UNAVAILABLE (no model
+    call). Explicit/natural lesson requests are already routed deterministically
+    before the classifier, so here we only separate a knowledge search (question
+    form) from normal conversation — we never silently force a request to RAG.
+    """
+    if is_lesson_intent(message):
+        return "lesson"
+    if _looks_like_question(message):
+        return "knowledge"
+    return "conversation"
+
+
 def classify_intent_llm(message: str) -> str:
-    """LOCAL lightweight classifier for ambiguous turns → 'lesson' | 'knowledge'."""
+    """
+    LOCAL semantic router → 'lesson' | 'knowledge' | 'conversation'.
+
+    Lets the model decide meaning instead of matching phrasings: a knowledge-base
+    question, a lesson request, or normal conversation about the assistant/system.
+    On failure/timeout it falls back to the deterministic rules (never a silent
+    default to RAG).
+    """
     system = (
-        "Classify the teacher's message as exactly one word: 'lesson' if they "
-        "want to create/build/plan or get ideas for a lesson plan, or "
-        "'knowledge' if they are asking a general/factual question. Answer with "
-        "only that one word."
+        "You are a router for a teaching-assistant app. Read one user message "
+        "and reply with EXACTLY ONE word.\n"
+        "- 'conversation' = small talk, greetings, or a question about the "
+        "assistant itself, what it can do, how to use the system, or what the "
+        "system is for. Questions about YOU or the SYSTEM are conversation, not "
+        "knowledge.\n"
+        "- 'lesson' = a request to create, build, plan, brainstorm, or continue "
+        "a lesson or lesson ideas.\n"
+        "- 'knowledge' = a request for factual information/content found in the "
+        "uploaded teaching documents.\n"
+        "Reply with only one word: conversation, lesson, or knowledge."
     )
     url = settings.LOCAL_OLLAMA_BASE_URL.rstrip("/") + "/api/chat"
     payload = {
@@ -156,33 +219,45 @@ def classify_intent_llm(message: str) -> str:
             resp = client.post(url, json=payload)
             resp.raise_for_status()
             content = (resp.json().get("message") or {}).get("content", "").lower()
-        return "lesson" if "lesson" in content else "knowledge"
-    except Exception as exc:  # noqa: BLE001 — on failure, prefer the safe RAG path
-        logger.warning("intent classifier failed (%s); defaulting to knowledge", exc)
+        # Tolerant match: the local model often replies with a variant
+        # ("conversación"/"conversazione"/"conversational") — accept the stem.
+        if "convers" in content:
+            return "conversation"
+        if "lesson" in content:
+            return "lesson"
         return "knowledge"
+    except Exception as exc:  # noqa: BLE001 — classifier unavailable → deterministic fallback
+        logger.warning(
+            "intent classifier unavailable (%s); using deterministic fallback", exc
+        )
+        return _deterministic_intent(message)
 
 
 def decide_route(mode: dict, message: str) -> str:
     """
-    Return "lesson" (→ n8n) or "rag" (→ RAG) for this turn.
+    Return "lesson" (→ n8n), "conversation" (→ assistant) or "rag" (→ RAG).
 
-    Routing is DETERMINISTIC on the hot path (no LLM): active lesson session,
-    explicit lesson request, confirmation of a RAG-insufficient offer, and
-    ordinary knowledge questions are all decided by cheap rules. The local LLM
-    classifier is a *rare* fallback, used only when the message carries
-    teaching-context signal yet wasn't an explicit request — a genuinely
-    ambiguous case. Everything else defaults to RAG (a bare topic the user
-    actually wanted a lesson for is still caught later by the RAG-insufficient
-    offer). ``mode`` holds the session's persisted flags; this function is pure.
+    DETERMINISTIC only for the truly obvious cases: an active lesson session, a
+    confirmed "build a lesson?" offer, and an explicit lesson-creation command.
+    Everything else — including questions — is decided SEMANTICALLY by the local
+    LLM router, which distinguishes a knowledge-base question, a lesson request,
+    and normal conversation about the assistant/system. ``mode`` holds the
+    session's persisted flags; this function is pure.
     """
     if mode.get("active"):                                     # active session
         return "lesson"
     if mode.get("pending_offer") and is_affirmative(message):  # accepted offer
         return "lesson"
-    if is_explicit_lesson(message):                            # explicit request
+    if is_explicit_lesson(message):
+        # A lesson QUESTION ("is there a lesson on X?") is a search of the KB →
+        # send it to RAG, whose fallback may offer to create one. A lesson
+        # COMMAND ("build a lesson on X") goes straight to creation.
+        return "rag" if _looks_like_question(message) else "lesson"
+    if is_lesson_intent(message):                              # M4: natural lesson phrasing
         return "lesson"
-    if _looks_like_question(message):                          # knowledge question
-        return "rag"
-    if _has_lesson_signal(message):                            # ambiguous → rare LLM
-        return "lesson" if classify_intent_llm(message) == "lesson" else "rag"
-    return "rag"                                               # deterministic default
+    intent = classify_intent_llm(message)                      # semantic router
+    if intent == "lesson":
+        return "lesson"
+    if intent == "conversation":
+        return "conversation"
+    return "rag"                                               # knowledge (default)
